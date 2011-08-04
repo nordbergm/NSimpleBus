@@ -43,7 +43,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Configuration
                 return queue;
             }
 
-            return string.Format("{0}_{1}", autoConfigureMode, queue);
+            return string.Format("{0}.{1}", autoConfigureMode, queue);
         }
     }
 }

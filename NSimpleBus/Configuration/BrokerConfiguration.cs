@@ -25,7 +25,17 @@ namespace NSimpleBus.Configuration
         public IDictionary<Type, IRegisteredConsumer> RegisteredConsumers { get; set; }
         public IBrokerConnectionFactory ConnectionFactory { get; set; }
 
+        public void RegisterSubscriber(IConsumer consumer)
+        {
+            RegisterConsumer(consumer, (t, c) => new RegisteredPubSubConsumer(t, c));
+        }
+
         public void RegisterConsumer(IConsumer consumer)
+        {
+            RegisterConsumer(consumer, (t, c) => new RegisteredConsumer(t, c));
+        }
+
+        private void RegisterConsumer(IConsumer consumer, Func<Type, IConsumer, IRegisteredConsumer> newConsumer)
         {
             Type[] ifaces = consumer.GetType().GetInterfaces();
 
@@ -38,11 +48,10 @@ namespace NSimpleBus.Configuration
 
                 var gargs = iface.GetGenericArguments();
 
-
                 if (gargs.Length > 0)
                 {
                     Type messageType = iface.GetGenericArguments()[0];
-                    RegisteredConsumers.Add(messageType, new RegisteredConsumer(messageType, consumer));
+                    RegisteredConsumers.Add(messageType, newConsumer(messageType, consumer));
                 }
             }
 
@@ -62,14 +71,22 @@ namespace NSimpleBus.Configuration
                 ConsumeMethod = consumer.GetType().GetMethod("Consume", new[] { messageType });
             }
 
-            public Type MessageType { get; private set; }
-            public IConsumer Consumer { get; private set; }
-            public MethodInfo ConsumeMethod { get; private set; }
-            public string Queue { get; private set; }
+            public Type MessageType { get; protected set; }
+            public IConsumer Consumer { get; protected set; }
+            public MethodInfo ConsumeMethod { get; protected set; }
+            public string Queue { get; protected set; }
 
             public void Invoke(object message)
             {
                 ConsumeMethod.Invoke(Consumer, new [] { message });
+            }
+        }
+
+        public class RegisteredPubSubConsumer : RegisteredConsumer
+        {
+            public RegisteredPubSubConsumer(Type messageType, IConsumer consumer) : base(messageType, consumer)
+            {
+                this.Queue = string.Format("{0}.{1}", this.Queue, Guid.NewGuid().ToString("n"));
             }
         }
     }

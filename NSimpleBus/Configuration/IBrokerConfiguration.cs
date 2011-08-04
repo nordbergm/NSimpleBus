@@ -18,5 +18,6 @@ namespace NSimpleBus.Configuration
         IDictionary<Type, IRegisteredConsumer> RegisteredConsumers { get; set; }
         IBrokerConnectionFactory ConnectionFactory { get; set; }
         void RegisterConsumer(IConsumer consumer);
+        void RegisterSubscriber(IConsumer consumer);
     }
 }

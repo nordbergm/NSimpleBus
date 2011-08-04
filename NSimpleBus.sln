@@ -5,6 +5,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NSimpleBus", "NSimpleBus\NS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NSimpleBus.Transports.RabbitMQ", "NSimpleBus.Transports.RabbitMQ\NSimpleBus.Transports.RabbitMQ.csproj", "{D07A6707-D366-4D1F-BB97-A0F3EF516F57}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{5CA6B971-3256-4334-82BA-5CBD8ED9D6CB}"
+	ProjectSection(SolutionItems) = preProject
+		NSimpleBusBuild.proj = NSimpleBusBuild.proj
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

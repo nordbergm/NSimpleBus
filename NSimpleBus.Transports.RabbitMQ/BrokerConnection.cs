@@ -8,11 +8,11 @@ namespace NSimpleBus.Transports.RabbitMQ
 {
     public class BrokerConnection : IBrokerConnection
     {
-        private readonly IConnection connection;
+        private readonly GroupedCallbackConsumer callbackConsumer;
         private readonly IBrokerConfiguration configuration;
+        private readonly IConnection connection;
         private readonly IModel model;
         private readonly MessageSerializer serializer;
-        private readonly GroupedCallbackConsumer callbackConsumer;
 
         public BrokerConnection(IConnection connection, IBrokerConfiguration configuration)
         {
@@ -24,34 +24,11 @@ namespace NSimpleBus.Transports.RabbitMQ
 
             if (configuration.AutoConfigure != AutoConfigureMode.None)
             {
-                AutoConfigureExchange(configuration.Exchange, this.model, configuration.AutoConfigure);
+                this.AutoConfigureExchange(configuration, this.model);
             }
         }
 
-        private void AutoConfigureExchange(string exchange, IModel model, AutoConfigureMode autoConfigureMode)
-        {
-            string type;
-            switch (autoConfigureMode)
-            {
-                case AutoConfigureMode.PublishSubscribe:
-                    type = "fanout";
-                    break;
-
-                case AutoConfigureMode.CompetingConsumer:
-                    type = "direct";
-                    break;
-
-                default:
-                    throw new NotSupportedException("The specified auto configuration mode is not supported.");
-            }
-
-            lock (model)
-            {
-                model.ExchangeDeclare(exchange, type, true, false, null);
-            }
-        }
-
-
+        #region IBrokerConnection Members
 
         public bool IsOpen
         {
@@ -60,30 +37,21 @@ namespace NSimpleBus.Transports.RabbitMQ
 
         public void Consume(IRegisteredConsumer registeredConsumer)
         {
-            IRegisteredConsumer internalRegistererConsumer = 
-                                    new RegisteredConsumer(
-                                            registeredConsumer,
-                                            this.configuration.AutoConfigure);
+            IRegisteredConsumer internalRegistererConsumer =
+                new RegisteredConsumer(
+                    registeredConsumer,
+                    this.configuration.AutoConfigure);
 
             if (this.configuration.AutoConfigure != AutoConfigureMode.None)
             {
-                AutoConfigureQueue(
-                        internalRegistererConsumer.Queue, 
-                        this.configuration.Exchange, 
-                        registeredConsumer.MessageType, 
-                        this.model);
+                this.AutoConfigureQueue(
+                    internalRegistererConsumer.Queue,
+                    this.configuration,
+                    registeredConsumer.MessageType,
+                    this.model);
             }
 
             this.callbackConsumer.ConsumeQueue(internalRegistererConsumer);
-        }
-
-        private void AutoConfigureQueue(string queue, string exchange, Type messageType, IModel model)
-        {
-            lock (model)
-            {
-                model.QueueDeclare(queue, true, false, false, null);
-                model.QueueBind(queue, exchange, messageType.ToRoutingKey());
-            }
         }
 
         public void Publish<T>(IMessageEnvelope<T> message, string exchange) where T : class
@@ -94,7 +62,7 @@ namespace NSimpleBus.Transports.RabbitMQ
                 byte[] body;
                 string routingKey;
 
-                serializer.SerializeMessage(message, this.model, out headers, out body, out routingKey);
+                this.serializer.SerializeMessage(message, this.model, out headers, out body, out routingKey);
 
                 this.model.BasicPublish(
                     exchange,
@@ -119,12 +87,59 @@ namespace NSimpleBus.Transports.RabbitMQ
                 throw new InvalidOperationException("The connection is not open and cannot be closed.");
             }
 
-            callbackConsumer.Close();
-            callbackConsumer.Dispose();
-            model.Close(200, "Goodbye");
-            model.Dispose();
-            connection.Close();
-            connection.Dispose();
+            this.callbackConsumer.Close();
+            this.callbackConsumer.Dispose();
+            this.model.Close(200, "Goodbye");
+            this.model.Dispose();
+            this.connection.Close();
+            this.connection.Dispose();
+        }
+
+        #endregion
+
+        private void AutoConfigureExchange(IBrokerConfiguration config, IModel m)
+        {
+            string type;
+            switch (config.AutoConfigure)
+            {
+                case AutoConfigureMode.PublishSubscribe:
+                    type = "fanout";
+                    break;
+
+                case AutoConfigureMode.CompetingConsumer:
+                    type = "direct";
+                    break;
+
+                default:
+                    throw new NotSupportedException("The specified auto configuration mode is not supported.");
+            }
+
+            lock (m)
+            {
+                m.ExchangeDeclare(config.Exchange, type, true, false, null);
+            }
+        }
+
+        private void AutoConfigureQueue(string queue, IBrokerConfiguration config, Type messageType, IModel m)
+        {
+            lock (m)
+            {
+                switch (config.AutoConfigure)
+                {
+                    case AutoConfigureMode.PublishSubscribe:
+                        m.QueueDeclare(queue, true, true, true, null);
+                        break;
+
+                    case AutoConfigureMode.CompetingConsumer:
+                        m.QueueDeclare(queue, true, false, false, null);
+                        break;
+
+                    default:
+                        throw new NotSupportedException("The specified auto configuration mode is not supported.");
+                }
+
+                m.QueueBind(queue, config.Exchange, messageType.ToRoutingKey());
+            }
         }
     }
 }

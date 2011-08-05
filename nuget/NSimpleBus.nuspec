@@ -17,6 +17,6 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="deploy\*.*" target="" />
+    <file src="..\deploy\*.*" target="" />
   </files>
 </package>

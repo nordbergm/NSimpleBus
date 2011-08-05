@@ -1,0 +1,68 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <UsingTask AssemblyFile="$(MSBuildProjectDirectory)\MSBuild.Community.Tasks.dll" TaskName="MSBuild.Community.Tasks.AssemblyInfo" />
+  <Import Project="MSBuild.Community.Tasks.Targets"/>
+  
+  <PropertyGroup>
+    <Configuration Condition="">Debug</Configuration>
+    <BuildDir>$(MSBuildProjectDirectory)\tmp</BuildDir>
+    <BuildDirSrc>$(MSBuildProjectDirectory)\tmp\src</BuildDirSrc>
+    <BuildDirSlnFile>$(BuildDir)\NSimpleBus.sln</BuildDirSlnFile>
+    <BuildDirNuget>$(BuildDir)\nuget</BuildDirNuget>
+    <DestFolder>$(BuildDir)\deploy</DestFolder>
+    <SlnFile>$(MSBuildProjectDirectory)\..\NSimpleBus.sln</SlnFile>
+    <SrcDir>$(MSBuildProjectDirectory)\..\src</SrcDir>
+    <NugetDir>$(MSBuildProjectDirectory)\..\nuget</NugetDir>
+    <NuspecFileName>NSimpleBus.nuspec</NuspecFileName>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <BUILD_NUMBER Condition="">1.0.0.0</BUILD_NUMBER>
+    <Version>$(BUILD_NUMBER)</Version>
+  </PropertyGroup>
+
+  <Target Name="CopyToBuild">
+    <ItemGroup>
+      <SrcFiles Include="$(SrcDir)\\**\*.*" />
+      <NugetFiles Include="$(NugetDir)\\**\*.*" />
+    </ItemGroup>
+    <RemoveDir Directories="$(BuildDir)" />
+    <Copy SourceFiles="$(SlnFile)" DestinationFiles="$(BuildDirSlnFile)" />
+    <Copy SourceFiles="@(SrcFiles)"
+          DestinationFiles="@(SrcFiles->'$(BuildDirSrc)\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(NugetFiles)"
+          DestinationFiles="@(NugetFiles->'$(BuildDirNuget)\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+  
+  <Target Name="Version" DependsOnTargets="CopyToBuild">
+    <AssemblyInfo CodeLanguage="CS"
+                OutputFile="$(BuildDirSrc)\AssemblyInfo.cs" 
+                AssemblyTitle="NSimpleBus"
+                AssemblyDescription="A simple to implement service bus for .NET which utilises RabbitMQ (by default) for pub/sub and distributed worker queue scenarios."
+                AssemblyConfiguration=""
+                AssemblyCompany=""
+                AssemblyProduct="NSimpleBus"
+                AssemblyCopyright=""
+                AssemblyTrademark=""
+                ComVisible="false"
+                CLSCompliant="false"
+                Guid="3219839f-c115-4c3e-9f2c-1b3e36dde51a"
+                AssemblyVersion="$(Version)"
+                AssemblyFileVersion="$(Version)" />
+  </Target>
+  
+  <Target Name="Build" DependsOnTargets="Version">
+    <PropertyGroup>
+      <PackagesDir>$(BuildDir)\packages</PackagesDir>
+    </PropertyGroup>
+    
+    <MSBuild Projects="$(BuildDirSlnFile)" >
+      <Output ItemName="OutputFiles" TaskParameter="TargetOutputs"/>
+    </MSBuild>
+    <Copy SourceFiles="@(OutputFiles)"
+       DestinationFiles="@(OutputFiles->'$(DestFolder)\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+  
+  <Target Name="Package" DependsOnTargets="Build">
+    <Exec Command="$(BuildDirNuget)\NuGet.exe pack $(BuildDirNuget)\$(NuspecFileName) -Version $(Version) -OutputDirectory $(DestFolder)" />
+  </Target>
+</Project>

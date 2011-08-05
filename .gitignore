@@ -30,3 +30,4 @@ _ReSharper*/
 build/tmp/*
 packages/*
 !packages/repositories.config
+!nuget/*

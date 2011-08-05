@@ -75,13 +75,13 @@
   
   <Target Name="Build" DependsOnTargets="Version">  
     <MSBuild Projects="$(BuildDirSlnFile)" >
-      <Output ItemName="OutputFiles" TaskParameter="TargetOutputs"/>
+      <Output ItemName="OutputFiles" TaskParameter="TargetOutputs" />
     </MSBuild>
     <Copy SourceFiles="@(OutputFiles)"
        DestinationFiles="@(OutputFiles->'$(DestFolder)\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
   
   <Target Name="Package" DependsOnTargets="Build">
-    <Exec Command="$(BuildDirNuget)\NuGet.exe pack $(BuildDirNuget)\$(NuspecFileName) -Version $(Version) -OutputDirectory $(DestFolder)" />
+    <Exec Command="$(Mono) $(BuildDirNuget)\NuGet.exe pack $(BuildDirNuget)\$(NuspecFileName) -Version $(Version) -OutputDirectory $(DestFolder)" />
   </Target>
 </Project>

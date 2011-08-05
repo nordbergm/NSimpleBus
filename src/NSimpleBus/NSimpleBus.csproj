@@ -69,7 +69,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>$(SolutionDir)nuget\NuGet.exe install $(ProjectDir)packages.config -OutputDirectory $(SolutionDir)packages</PreBuildEvent>
+    <PreBuildEvent>$(Mono) $(SolutionDir)nuget\NuGet.exe install $(ProjectDir)packages.config -OutputDirectory $(SolutionDir)packages</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -1,7 +1,6 @@
 ﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <UsingTask AssemblyFile="$(MSBuildProjectDirectory)\MSBuild.Community.Tasks.dll" TaskName="MSBuild.Community.Tasks.AssemblyInfo" />
-  <Import Project="MSBuild.Community.Tasks.Targets"/>
-  
+  <UsingTask AssemblyFile="$(MSBuildExtensionsPath)\AssemblyInfoTask\AssemblyInfoTask.dll" TaskName="AssemblyInfo"/>
+
   <PropertyGroup>
     <Configuration Condition="">Debug</Configuration>
     <BuildDir>$(MSBuildProjectDirectory)\tmp</BuildDir>
@@ -13,19 +12,22 @@
     <SrcDir>$(MSBuildProjectDirectory)\..\src</SrcDir>
     <NugetDir>$(MSBuildProjectDirectory)\..\nuget</NugetDir>
     <NuspecFileName>NSimpleBus.nuspec</NuspecFileName>
+    <PackagesDir>$(BuildDir)\packages</PackagesDir>
   </PropertyGroup>
 
+  <ItemGroup>
+    <SrcFiles Include="$(SrcDir)\\**\*.*" />
+    <NugetFiles Include="$(NugetDir)\\**\*.*" />
+  </ItemGroup>
+  
   <PropertyGroup>
-    <BUILD_NUMBER Condition="">1.0.0.0</BUILD_NUMBER>
-    <Version>$(BUILD_NUMBER)</Version>
+    <BUILD_NUMBER Condition="">0</BUILD_NUMBER>
+    <VersionMajor>0</VersionMajor>
+    <VersionMinor>1</VersionMinor>
+    <Version>$(VersionMajor).$(VersionMinor).$(BUILD_NUMBER).0</Version>
   </PropertyGroup>
 
   <Target Name="CopyToBuild">
-    <ItemGroup>
-      <SrcFiles Include="$(SrcDir)\\**\*.*" />
-      <NugetFiles Include="$(NugetDir)\\**\*.*" />
-    </ItemGroup>
-    <RemoveDir Directories="$(BuildDir)" />
     <Copy SourceFiles="$(SlnFile)" DestinationFiles="$(BuildDirSlnFile)" />
     <Copy SourceFiles="@(SrcFiles)"
           DestinationFiles="@(SrcFiles->'$(BuildDirSrc)\%(RecursiveDir)%(Filename)%(Extension)')" />
@@ -34,7 +36,28 @@
   </Target>
   
   <Target Name="Version" DependsOnTargets="CopyToBuild">
-    <AssemblyInfo CodeLanguage="CS"
+    <AssemblyInfo AssemblyInfoFiles="$(BuildDirSrc)\AssemblyInfo.cs"
+                      AssemblyMajorVersion="$(VersionMajor)"
+                      AssemblyMinorVersion="$(VersionMinor)"
+                      AssemblyBuildNumber="$(BUILD_NUMBER)"
+                      AssemblyRevision="0"
+                      AssemblyFileMajorVersion="$(VersionMajor)"
+                      AssemblyFileMinorVersion="$(VersionMinor)"
+                      AssemblyFileBuildNumber="$(BUILD_NUMBER)"
+                      AssemblyFileRevision="0"
+                      ComVisible="false"
+                      AssemblyCompany=""
+                      AssemblyConfiguration=""
+                      AssemblyCopyright=""
+                      AssemblyCulture=""
+                      AssemblyDescription="A simple to implement service bus for .NET which utilises RabbitMQ (by default) for pub/sub and distributed worker queue scenarios."
+                      AssemblyProduct="NSimpleBus"
+                      AssemblyTitle="NSimpleBus">
+      <Output TaskParameter="MaxAssemblyVersion" PropertyName="MaxAssemblyVersion"/>
+      <Output TaskParameter="MaxAssemblyFileVersion" PropertyName="MaxAssemblyFileVersion"/>
+    </AssemblyInfo>
+
+    <!--<AssemblyInfo CodeLanguage="CS"
                 OutputFile="$(BuildDirSrc)\AssemblyInfo.cs" 
                 AssemblyTitle="NSimpleBus"
                 AssemblyDescription="A simple to implement service bus for .NET which utilises RabbitMQ (by default) for pub/sub and distributed worker queue scenarios."
@@ -47,14 +70,10 @@
                 CLSCompliant="false"
                 Guid="3219839f-c115-4c3e-9f2c-1b3e36dde51a"
                 AssemblyVersion="$(Version)"
-                AssemblyFileVersion="$(Version)" />
+                AssemblyFileVersion="$(Version)" />-->
   </Target>
   
-  <Target Name="Build" DependsOnTargets="Version">
-    <PropertyGroup>
-      <PackagesDir>$(BuildDir)\packages</PackagesDir>
-    </PropertyGroup>
-    
+  <Target Name="Build" DependsOnTargets="Version">  
     <MSBuild Projects="$(BuildDirSlnFile)" >
       <Output ItemName="OutputFiles" TaskParameter="TargetOutputs"/>
     </MSBuild>

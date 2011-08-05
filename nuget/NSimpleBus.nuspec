@@ -17,6 +17,6 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="../deploy/*.*" target="" />
+    <file src="*.dll" target="lib" />
   </files>
 </package>

@@ -56,21 +56,6 @@
       <Output TaskParameter="MaxAssemblyVersion" PropertyName="MaxAssemblyVersion"/>
       <Output TaskParameter="MaxAssemblyFileVersion" PropertyName="MaxAssemblyFileVersion"/>
     </AssemblyInfo>
-
-    <!--<AssemblyInfo CodeLanguage="CS"
-                OutputFile="$(BuildDirSrc)\AssemblyInfo.cs" 
-                AssemblyTitle="NSimpleBus"
-                AssemblyDescription="A simple to implement service bus for .NET which utilises RabbitMQ (by default) for pub/sub and distributed worker queue scenarios."
-                AssemblyConfiguration=""
-                AssemblyCompany=""
-                AssemblyProduct="NSimpleBus"
-                AssemblyCopyright=""
-                AssemblyTrademark=""
-                ComVisible="false"
-                CLSCompliant="false"
-                Guid="3219839f-c115-4c3e-9f2c-1b3e36dde51a"
-                AssemblyVersion="$(Version)"
-                AssemblyFileVersion="$(Version)" />-->
   </Target>
   
   <Target Name="Build" DependsOnTargets="Version">  
@@ -82,6 +67,8 @@
   </Target>
   
   <Target Name="Package" DependsOnTargets="Build">
-    <Exec Command="$(Mono) $(BuildDirNuget)\NuGet.exe pack $(BuildDirNuget)\$(NuspecFileName) -Version $(Version) -OutputDirectory $(DestFolder)" />
+    <Copy SourceFiles="$(BuildDirNuget)\$(NuspecFileName)" DestinationFiles="$(DestFolder)\$(NuspecFileName)" />
+    <Exec Command="$(Mono) $(BuildDirNuget)\NuGet.exe pack $(DestFolder)\$(NuspecFileName) -Version $(Version) -OutputDirectory $(DestFolder)" />
+    <Delete Files="$(DestFolder)\$(NuspecFileName)" />
   </Target>
 </Project>

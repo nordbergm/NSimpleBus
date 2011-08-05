@@ -27,4 +27,6 @@ obj/
 [Rr]elease*/
 _ReSharper*/
 [Tt]est[Rr]esult*
-Deploy/*
+build/*
+packages/*
+!packages/repositories.config

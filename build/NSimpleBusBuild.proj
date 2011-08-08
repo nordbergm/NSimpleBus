@@ -15,4 +15,14 @@
     <!-- Builds the package -->
     <RunCommand Verb="build" Noun="wrap" />
   </Target>
+  <Target Name="Publish" DependsOnTargets="Build">
+    <PropertyGroup>
+      <PublishCommandArguments>
+        <Name>NSimpleBus</Name>
+        <Remote>file://build/packages</Remote>
+      </PublishCommandArguments>
+    </PropertyGroup>
+
+    <RunCommand Noun="wrap" Verb="publish" Args="$(PublishCommandArguments)" />
+  </Target>
 </Project>

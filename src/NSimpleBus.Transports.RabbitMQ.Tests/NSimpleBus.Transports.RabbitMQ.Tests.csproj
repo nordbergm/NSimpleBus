@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{D07A6707-D366-4D1F-BB97-A0F3EF516F57}</ProjectGuid>
+    <ProjectGuid>{19FD8608-F28A-4E45-BF5B-1CAABFFD2AD4}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>NSimpleBus.Transports.RabbitMQ</RootNamespace>
-    <AssemblyName>NSimpleBus.Transports.RabbitMQ</AssemblyName>
+    <RootNamespace>NSimpleBus.Transports.RabbitMQ.Tests</RootNamespace>
+    <AssemblyName>NSimpleBus.Transports.RabbitMQ.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -40,30 +40,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BrokerConnection.cs" />
-    <Compile Include="BrokerConnectionFactory.cs" />
-    <Compile Include="Configuration\BrokerConfigurationExtensions.cs" />
-    <Compile Include="Configuration\RegisteredConsumer.cs" />
-    <Compile Include="ConsumeToken.cs" />
-    <Compile Include="GroupedCallbackConsumer.cs" />
-    <Compile Include="..\AssemblyInfo.cs" />
-    <Compile Include="ICallbackConsumer.cs" />
-    <Compile Include="QueueActivityConsumer.cs" />
-    <Compile Include="Serialization\IMessageSerializer.cs" />
-    <Compile Include="Serialization\MessageSerializer.cs" />
-    <Compile Include="Serialization\TypeExtensions.cs" />
+    <Compile Include="BrokerConfigurationTests.cs" />
+    <Compile Include="ConsumeTokenTests.cs" />
+    <Compile Include="GroupedCallbackConsumerTests.cs" />
+    <Compile Include="BrokerConnectionTests.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\NSimpleBus.Tests\NSimpleBus.Tests.csproj">
+      <Project>{A5D90415-2622-44B5-842E-C1C0DA72C4F0}</Project>
+      <Name>NSimpleBus.Tests</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NSimpleBus.Transports.RabbitMQ\NSimpleBus.Transports.RabbitMQ.csproj">
+      <Project>{D07A6707-D366-4D1F-BB97-A0F3EF516F57}</Project>
+      <Name>NSimpleBus.Transports.RabbitMQ</Name>
+    </ProjectReference>
     <ProjectReference Include="..\NSimpleBus\NSimpleBus.csproj">
       <Project>{FFCDC04C-C034-4BDF-AA59-BACD05B8E482}</Project>
       <Name>NSimpleBus</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\..\wraps\openwrap\build\OpenWrap.CSharp.targets" />
-  <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
-  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

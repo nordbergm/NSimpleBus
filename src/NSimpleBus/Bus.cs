@@ -55,7 +55,7 @@ namespace NSimpleBus
 
         public void Dispose()
         {
-            if (this.connection.IsOpen)
+            if (this.connection != null && this.connection.IsOpen)
             {
                 this.connection.Close();
             }

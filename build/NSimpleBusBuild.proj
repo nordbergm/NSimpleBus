@@ -1,7 +1,9 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build" InitialTargets="_Initialize">
+  <UsingTask AssemblyFile="$(MSBuildExtensionsPath)\Xunit\xunit.runner.msbuild.dll" TaskName="Xunit.Runner.MSBuild.xunit"/>
   <Import Project="..\wraps\openwrap\build\OpenWrap.tasks"/>
   <PropertyGroup>
     <OpenWrap-BuildTasksDirectory>$(MSBuildProjectDirectory)\..\wraps\openwrap\build</OpenWrap-BuildTasksDirectory>
+    <SrcDir>$(MSBuildProjectDirectory)\..\src</SrcDir>
   </PropertyGroup>
 
   <Target Name="_Initialize">
@@ -15,6 +17,18 @@
     <!-- Builds the package -->
     <RunCommand Verb="build" Noun="wrap" />
   </Target>
+
+  <Target Name="UnitTest">
+    <ItemGroup>
+      <TestProjectFiles Include="$(SrcDir)\\**\*Tests.csproj" Exclude="$(SrcDir)\\**\*IntegrationTests.csproj" />
+    </ItemGroup>
+    <MSBuild Projects="@(TestProjectFiles)">
+      <Output ItemName="OutputFiles" TaskParameter="TargetOutputs" />
+    </MSBuild>
+
+    <xunit Assemblies="@(OutputFiles)" />
+  </Target>
+  
   <Target Name="Publish" DependsOnTargets="Build">
     <PropertyGroup>
       <PublishCommandArguments>

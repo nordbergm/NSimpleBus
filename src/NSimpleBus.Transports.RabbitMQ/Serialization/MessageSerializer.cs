@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using NSimpleBus.Serialization;
@@ -10,7 +8,7 @@ using RabbitMQ.Client.Content;
 
 namespace NSimpleBus.Transports.RabbitMQ.Serialization
 {
-    public class MessageSerializer
+    public class MessageSerializer : IMessageSerializer
     {
         private const string MessageTypeHeader = "MessageType";
 

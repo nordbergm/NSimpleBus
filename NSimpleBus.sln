@@ -10,6 +10,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{BF81B077
 		build\NSimpleBusBuild.proj = build\NSimpleBusBuild.proj
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{A664DFC0-F456-4BED-9FAB-02AB6B433069}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NSimpleBus.Tests", "src\NSimpleBus.Tests\NSimpleBus.Tests.csproj", "{A5D90415-2622-44B5-842E-C1C0DA72C4F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NSimpleBus.Transports.RabbitMQ.Tests", "src\NSimpleBus.Transports.RabbitMQ.Tests\NSimpleBus.Transports.RabbitMQ.Tests.csproj", "{19FD8608-F28A-4E45-BF5B-1CAABFFD2AD4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,8 +30,20 @@ Global
 		{D07A6707-D366-4D1F-BB97-A0F3EF516F57}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D07A6707-D366-4D1F-BB97-A0F3EF516F57}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D07A6707-D366-4D1F-BB97-A0F3EF516F57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5D90415-2622-44B5-842E-C1C0DA72C4F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5D90415-2622-44B5-842E-C1C0DA72C4F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5D90415-2622-44B5-842E-C1C0DA72C4F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5D90415-2622-44B5-842E-C1C0DA72C4F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19FD8608-F28A-4E45-BF5B-1CAABFFD2AD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19FD8608-F28A-4E45-BF5B-1CAABFFD2AD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19FD8608-F28A-4E45-BF5B-1CAABFFD2AD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19FD8608-F28A-4E45-BF5B-1CAABFFD2AD4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A5D90415-2622-44B5-842E-C1C0DA72C4F0} = {A664DFC0-F456-4BED-9FAB-02AB6B433069}
+		{19FD8608-F28A-4E45-BF5B-1CAABFFD2AD4} = {A664DFC0-F456-4BED-9FAB-02AB6B433069}
 	EndGlobalSection
 EndGlobal

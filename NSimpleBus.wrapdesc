@@ -5,3 +5,5 @@ depends: RabbitMQ.Client
 depends: ServiceStack.Text
 depends: log4net
 build: msbuild;project=src\NSimpleBus\NSimpleBus.csproj;project=src\NSimpleBus.Transports.RabbitMQ\NSimpleBus.Transports.RabbitMQ.csproj
+depends: xunit
+depends: RhinoMocks

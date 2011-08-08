@@ -1,4 +1,5 @@
 ﻿using NSimpleBus.Configuration;
+using NSimpleBus.Transports.RabbitMQ.Serialization;
 using RabbitMQ.Client;
 
 namespace NSimpleBus.Transports.RabbitMQ
@@ -28,7 +29,16 @@ namespace NSimpleBus.Transports.RabbitMQ
                 };
             }
 
-            return new BrokerConnection(factory.CreateConnection(), configuration);
+            IConnection connection = factory.CreateConnection();
+            IModel model = connection.CreateModel();
+            IMessageSerializer serializer = new MessageSerializer(configuration.Serializer);
+
+            return new BrokerConnection(
+                        connection, 
+                        model, 
+                        configuration,
+                        serializer, 
+                        new GroupedCallbackConsumer(model, serializer));
         }
     }
 }

@@ -8,19 +8,19 @@ namespace NSimpleBus.Transports.RabbitMQ
 {
     public class BrokerConnection : IBrokerConnection
     {
-        private readonly GroupedCallbackConsumer callbackConsumer;
+        private readonly ICallbackConsumer callbackConsumer;
         private readonly IBrokerConfiguration configuration;
         private readonly IConnection connection;
         private readonly IModel model;
-        private readonly MessageSerializer serializer;
+        private readonly IMessageSerializer serializer;
 
-        public BrokerConnection(IConnection connection, IBrokerConfiguration configuration)
+        public BrokerConnection(IConnection connection, IModel model, IBrokerConfiguration configuration, IMessageSerializer serializer, ICallbackConsumer callbackConsumer)
         {
             this.connection = connection;
             this.configuration = configuration;
-            this.model = connection.CreateModel();
-            this.serializer = new MessageSerializer(configuration.Serializer);
-            this.callbackConsumer = new GroupedCallbackConsumer(this.model, configuration.Serializer);
+            this.model = model;
+            this.serializer = serializer;
+            this.callbackConsumer = callbackConsumer;
 
             if (configuration.AutoConfigure != AutoConfigureMode.None)
             {
@@ -87,12 +87,23 @@ namespace NSimpleBus.Transports.RabbitMQ
                 throw new InvalidOperationException("The connection is not open and cannot be closed.");
             }
 
-            this.callbackConsumer.Close();
-            this.callbackConsumer.Dispose();
-            this.model.Close(200, "Goodbye");
-            this.model.Dispose();
-            this.connection.Close();
-            this.connection.Dispose();
+            if (this.callbackConsumer.IsRunning)
+            {
+                this.callbackConsumer.Close();
+                this.callbackConsumer.Dispose();
+            }
+
+            if (this.model.IsOpen)
+            {
+                this.model.Close(200, "Goodbye");
+                this.model.Dispose();
+            }
+
+            if (this.connection.IsOpen)
+            {
+                this.connection.Close();
+                this.connection.Dispose();
+            }
         }
 
         #endregion

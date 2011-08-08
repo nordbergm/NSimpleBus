@@ -1,27 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using NSimpleBus.Configuration;
-using NSimpleBus.Serialization;
 using NSimpleBus.Transports.RabbitMQ.Serialization;
 using RabbitMQ.Client;
 
 namespace NSimpleBus.Transports.RabbitMQ
 {
-    public class GroupedCallbackConsumer : IDisposable
+    public class GroupedCallbackConsumer : ICallbackConsumer
     {
         private readonly Thread workerThread;
-        private readonly IDictionary<string, QueueConsumer> queueConsumers;
         private readonly object lockObject = new object();
         private readonly Queue<QueueActivityConsumer.DeliverEventArgs> deliveryQueue = new Queue<QueueActivityConsumer.DeliverEventArgs>();
 
-        public GroupedCallbackConsumer(IModel model, ISerializer serializer)
+        public GroupedCallbackConsumer(IModel model, IMessageSerializer serializer)
         {
             Model = model;
+            Serializer = serializer;
             IsRunning = true;
-            Serializer = new MessageSerializer(serializer);
-            queueConsumers = new Dictionary<string, QueueConsumer>();
-            workerThread = new Thread(BackgroundConsume)
+            QueueConsumers = new Dictionary<string, QueueConsumer>();
+
+            workerThread = new Thread(StartBackgroundConsume)
                                {
                                    IsBackground = true, 
                                    Name = "RabbitMQ Queue Consumer"
@@ -31,9 +31,10 @@ namespace NSimpleBus.Transports.RabbitMQ
 
         public bool IsRunning { get; private set; }
         public IModel Model { get; private set; }
-        public MessageSerializer Serializer { get; private set; }
+        public IMessageSerializer Serializer { get; private set; }
+        public IDictionary<string, QueueConsumer> QueueConsumers { get; private set; }
 
-        private void BackgroundConsume()
+        private void StartBackgroundConsume()
         {
             while(IsRunning)
             {
@@ -45,18 +46,18 @@ namespace NSimpleBus.Transports.RabbitMQ
                 while (deliveryQueue.Count > 0)
                 {
                     var args = deliveryQueue.Dequeue();
-                    this.CallbackWithEnvelope(args);
+                    this.CallbackWithMessage(args);
                 }
             }
         }
 
-        private void CallbackWithEnvelope(QueueActivityConsumer.DeliverEventArgs args)
+        private void CallbackWithMessage(QueueActivityConsumer.DeliverEventArgs args)
         {
-            if (this.queueConsumers.ContainsKey(args.Queue))
+            if (this.QueueConsumers.ContainsKey(args.Queue) && !this.QueueConsumers[args.Queue].ConsumeToken.IsClosed)
             {
                 IMessageEnvelope<object> envelope = Serializer.DeserializeMessage(args);
 
-                foreach (var registeredConsumer in this.queueConsumers[args.Queue].RegisteredConsumers)
+                foreach (var registeredConsumer in this.QueueConsumers[args.Queue].RegisteredConsumers)
                 {
                     registeredConsumer.Invoke(envelope.Message);
                 }
@@ -65,7 +66,7 @@ namespace NSimpleBus.Transports.RabbitMQ
 
         public void ConsumeQueue(IRegisteredConsumer registeredConsumer)
         {
-            if (!this.queueConsumers.ContainsKey(registeredConsumer.Queue))
+            if (!this.QueueConsumers.ContainsKey(registeredConsumer.Queue))
             {
                 var queueActivityConsumer = CreateAndSetupQueueConsumer(this.Model, registeredConsumer.Queue);
 
@@ -75,11 +76,11 @@ namespace NSimpleBus.Transports.RabbitMQ
                     new ConsumeToken(this.Model.BasicConsume(registeredConsumer.Queue, false, queueActivityConsumer), this.Model)
                     );
 
-                this.queueConsumers.Add(registeredConsumer.Queue, consumer);
+                this.QueueConsumers.Add(registeredConsumer.Queue, consumer);
             }
             else
             {
-                queueConsumers[registeredConsumer.Queue].RegisteredConsumers.Add(registeredConsumer);
+                QueueConsumers[registeredConsumer.Queue].RegisteredConsumers.Add(registeredConsumer);
             }
         }
 
@@ -106,17 +107,33 @@ namespace NSimpleBus.Transports.RabbitMQ
 
         public void Close()
         {
+            if (!IsRunning)
+            {
+                throw new InvalidOperationException("The callback consumer has already been closed.");
+            }
+
             IsRunning = false;
 
-            foreach (var queueConsumer in queueConsumers)
+            lock (this.lockObject)
             {
+                Monitor.Pulse(this.lockObject);
+            }
+
+            this.workerThread.Join();
+
+            foreach (var queueConsumer in QueueConsumers)
+            {
+                queueConsumer.Value.ConsumeToken.Close();
                 queueConsumer.Value.ConsumeToken.Dispose();
             }
         }
 
         public void Dispose()
         {
-            this.Close();
+            if (IsRunning)
+            {
+                this.Close();
+            }
         }
 
         public class QueueConsumer

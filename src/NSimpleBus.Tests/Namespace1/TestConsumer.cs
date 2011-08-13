@@ -1,4 +1,4 @@
-﻿namespace NSimpleBus.Tests
+﻿namespace NSimpleBus.Tests.Namespace1
 {
     public class TestConsumer : Consumes<TestMessage>.All
     {

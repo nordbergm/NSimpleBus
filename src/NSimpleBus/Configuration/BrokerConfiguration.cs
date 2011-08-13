@@ -11,7 +11,7 @@ namespace NSimpleBus.Configuration
     {
         public BrokerConfiguration()
         {
-            RegisteredConsumers = new Dictionary<Type, IRegisteredConsumer>();
+            RegisteredConsumers = new Dictionary<Type, IList<IRegisteredConsumer>>();
             AutoConfigure = AutoConfigureMode.None;
         }
 
@@ -23,31 +23,35 @@ namespace NSimpleBus.Configuration
         public string Exchange { get; set; }
         public string VirtualHost { get; set; }
         public AutoConfigureMode AutoConfigure { get; set; }
-        public IDictionary<Type, IRegisteredConsumer> RegisteredConsumers { get; set; }
+        public IDictionary<Type, IList<IRegisteredConsumer>> RegisteredConsumers { get; set; }
         public IBrokerConnectionFactory ConnectionFactory { get; set; }
 
-        public void RegisterConsumers(Assembly assembly)
+        public void RegisterConsumers(Assembly assembly, string nameSpace = null)
         {
             if (assembly == null)
             {
                 throw new ArgumentNullException("assembly");
             }
 
-            foreach (var type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(IConsumer))))
+            foreach (var type in assembly.GetTypes()
+                .Where(
+                    t => (nameSpace == null || t.Namespace.Equals(nameSpace)) && t.GetInterfaces().Contains(typeof(IConsumer))))
             {
                 Type consumerType = type;
                 RegisterConsumer(() => (IConsumer)Activator.CreateInstance(consumerType), (t, c) => new RegisteredConsumer(t, c));
             }
         }
 
-        public void RegisterSubscribers(Assembly assembly)
+        public void RegisterSubscribers(Assembly assembly, string nameSpace = null)
         {
             if (assembly == null)
             {
                 throw new ArgumentNullException("assembly");
             }
 
-            foreach (var type in assembly.GetTypes().Where(t => t.GetInterfaces().Contains(typeof(ISubscriber))))
+            foreach (var type in assembly.GetTypes()
+                .Where(
+                    t => (nameSpace == null || t.Namespace.Equals(nameSpace)) && t.GetInterfaces().Contains(typeof(ISubscriber))))
             {
                 Type consumerType = type;
                 RegisterConsumer(() => (ISubscriber)Activator.CreateInstance(consumerType), (t, c) => new RegisteredSubscriber(t, c));
@@ -102,7 +106,13 @@ namespace NSimpleBus.Configuration
                 if (gargs.Length > 0)
                 {
                     Type messageType = iface.GetGenericArguments()[0];
-                    RegisteredConsumers.Add(messageType, newConsumer(messageType, consumerDelegate));
+
+                    if (!RegisteredConsumers.ContainsKey(messageType))
+                    {
+                        RegisteredConsumers.Add(messageType, new List<IRegisteredConsumer>());
+                    }
+
+                    RegisteredConsumers[messageType].Add(newConsumer(messageType, consumerDelegate));
                 }
             }
 

@@ -16,11 +16,11 @@ namespace NSimpleBus.Configuration
         string VirtualHost { get; set; }
         AutoConfigureMode AutoConfigure { get; set; }
         ISerializer Serializer { get; set; }
-        IDictionary<Type, IRegisteredConsumer> RegisteredConsumers { get; set; }
+        IDictionary<Type, IList<IRegisteredConsumer>> RegisteredConsumers { get; set; }
         IBrokerConnectionFactory ConnectionFactory { get; set; }
         void RegisterConsumer(Func<IConsumer> consumer);
         void RegisterSubscriber(Func<ISubscriber> consumer);
-        void RegisterConsumers(Assembly assembly);
-        void RegisterSubscribers(Assembly assembly);
+        void RegisterConsumers(Assembly assembly, string nameSpace = null);
+        void RegisterSubscribers(Assembly assembly, string nameSpace = null);
     }
 }

@@ -24,7 +24,7 @@ namespace NSimpleBus.Tests
             {
                 SetupResult.For(connFactory.CreateConnection()).Return(conn);
                 SetupResult.For(config.ConnectionFactory).Return(connFactory);
-                SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IRegisteredConsumer> { { typeof(TestMessage), consumer } });
+                SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } });
 
                 Expect.Call(() => conn.Consume(consumer));
             }
@@ -48,7 +48,7 @@ namespace NSimpleBus.Tests
             {
                 SetupResult.For(connFactory.CreateConnection()).Return(conn);
                 SetupResult.For(config.ConnectionFactory).Return(connFactory);
-                SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IRegisteredConsumer> { { typeof(TestMessage), consumer } });
+                SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } });
                 SetupResult.For(conn.IsOpen).Return(true);
 
                 Expect.Call(conn.Close);
@@ -76,7 +76,7 @@ namespace NSimpleBus.Tests
                 SetupResult.For(connFactory.CreateConnection()).Return(conn);
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(config.ConnectionFactory).Return(connFactory);
-                SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IRegisteredConsumer> { { typeof(TestMessage), consumer } });
+                SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } }); ;
                 SetupResult.For(conn.IsOpen).Return(true);
 
                 Expect.Call(() => conn.Publish<TestMessage>(null, null))
@@ -113,7 +113,7 @@ namespace NSimpleBus.Tests
             {
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(config.ConnectionFactory).Return(connFactory);
-                SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IRegisteredConsumer> { { typeof(TestMessage), consumer } });
+                SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } }); ;
                 SetupResult.For(conn.IsOpen).Return(true);
 
                 Expect.Call(connFactory.CreateConnection()).Repeat.Once().Return(conn);

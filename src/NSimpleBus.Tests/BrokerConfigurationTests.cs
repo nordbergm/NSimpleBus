@@ -2,6 +2,8 @@
 using System.Reflection;
 using NSimpleBus.Configuration;
 using NSimpleBus.Serialization;
+using NSimpleBus.Tests.Namespace1;
+using NSimpleBus.Tests.Namespace2;
 using Rhino.Mocks;
 using Xunit;
 
@@ -27,9 +29,10 @@ namespace NSimpleBus.Tests
                 config.RegisterConsumer(() => consumer);
 
                 Assert.Equal(1, config.RegisteredConsumers.Count);
+                Assert.Equal(1, config.RegisteredConsumers[typeof(TestMessage)].Count);
                 Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
 
-                var addedConsumer = config.RegisteredConsumers[typeof (TestMessage)];
+                var addedConsumer = config.RegisteredConsumers[typeof (TestMessage)][0];
                 Assert.IsType(typeof (BrokerConfiguration.RegisteredConsumer), addedConsumer);
                 Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
                 Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
@@ -45,9 +48,31 @@ namespace NSimpleBus.Tests
             config.RegisterConsumers(Assembly.GetExecutingAssembly());
 
             Assert.Equal(1, config.RegisteredConsumers.Count);
+            Assert.Equal(2, config.RegisteredConsumers[typeof(TestMessage)].Count);
             Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
 
-            var addedConsumer = config.RegisteredConsumers[typeof(TestMessage)];
+            var addedConsumer = config.RegisteredConsumers[typeof(TestMessage)][0];
+            Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
+            Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
+            Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
+
+            addedConsumer = config.RegisteredConsumers[typeof(TestMessage)][1];
+            Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
+            Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
+            Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
+        }
+
+        [Fact]
+        public void CanRegisterConsumerFromAssemblyWithNamespace()
+        {
+            BrokerConfiguration config = new BrokerConfiguration();
+            config.RegisterConsumers(Assembly.GetExecutingAssembly(), typeof(TestConsumer).Namespace);
+
+            Assert.Equal(1, config.RegisteredConsumers.Count);
+            Assert.Equal(1, config.RegisteredConsumers[typeof(TestMessage)].Count);
+            Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
+
+            var addedConsumer = config.RegisteredConsumers[typeof(TestMessage)][0];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
             Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
             Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
@@ -71,9 +96,10 @@ namespace NSimpleBus.Tests
                 config.RegisterSubscriber(() => subscriber);
 
                 Assert.Equal(1, config.RegisteredConsumers.Count);
+                Assert.Equal(1, config.RegisteredConsumers[typeof(TestMessage)].Count);
                 Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
 
-                var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)];
+                var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)][0];
                 Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
                 Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
                 Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
@@ -90,9 +116,33 @@ namespace NSimpleBus.Tests
             config.RegisterSubscribers(Assembly.GetExecutingAssembly());
 
             Assert.Equal(1, config.RegisteredConsumers.Count);
+            Assert.Equal(2, config.RegisteredConsumers[typeof(TestMessage)].Count);
             Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
 
-            var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)];
+            var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)][0];
+            Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
+            Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
+            Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
+            Assert.Contains(typeof(TestMessage).FullName, addedSubscriber.Queue);
+
+            addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)][1];
+            Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
+            Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
+            Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
+            Assert.Contains(typeof(TestMessage).FullName, addedSubscriber.Queue);
+        }
+
+        [Fact]
+        public void CanRegisterSubscribersFromAssemblyWithNamespace()
+        {
+            BrokerConfiguration config = new BrokerConfiguration();
+            config.RegisterSubscribers(Assembly.GetExecutingAssembly(), typeof(TestSubscriber).Namespace);
+
+            Assert.Equal(1, config.RegisteredConsumers.Count);
+            Assert.Equal(1, config.RegisteredConsumers[typeof(TestMessage)].Count);
+            Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
+
+            var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)][0];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
             Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
             Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);

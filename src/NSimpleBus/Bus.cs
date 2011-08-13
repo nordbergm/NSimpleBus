@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using NSimpleBus.Configuration;
 using NSimpleBus.Transports;
 
@@ -6,15 +7,15 @@ namespace NSimpleBus
 {
     public class Bus : IBus
     {
-        private IBrokerConnection connection;
+        private IBrokerConnection _connection;
 
         public Bus(IBrokerConfiguration configuration)
         {
             Configuration = configuration;
 
-            foreach (var registeredConsumer in configuration.RegisteredConsumers)
+            foreach (var registeredConsumer in configuration.RegisteredConsumers.SelectMany(kvp => kvp.Value))
             {
-                this.GetLiveConnection().Consume(registeredConsumer.Value);
+                this.GetLiveConnection().Consume(registeredConsumer);
             }
         }
 
@@ -45,19 +46,19 @@ namespace NSimpleBus
             // TODO: Make this nice and fault tolerant to dropped connections
             // BUG: Leaking connections
 
-            if (this.connection == null)
+            if (this._connection == null)
             {
-                this.connection = Configuration.ConnectionFactory.CreateConnection();
+                this._connection = Configuration.ConnectionFactory.CreateConnection();
             }
 
-            return connection;
+            return this._connection;
         }
 
         public void Dispose()
         {
-            if (this.connection != null && this.connection.IsOpen)
+            if (this._connection != null && this._connection.IsOpen)
             {
-                this.connection.Close();
+                this._connection.Close();
             }
         }
     }

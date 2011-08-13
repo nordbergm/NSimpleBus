@@ -51,6 +51,8 @@
     <Compile Include="Configuration\IBrokerConfiguration.cs" />
     <Compile Include="Configuration\IRegisteredConsumer.cs" />
     <Compile Include="IBus.cs" />
+    <Compile Include="ISubscriber.cs" />
+    <Compile Include="Subscribes.cs" />
     <Compile Include="Transports\IBrokerConnection.cs" />
     <Compile Include="Transports\IBrokerConnectionFactory.cs" />
     <Compile Include="IConsumer.cs" />

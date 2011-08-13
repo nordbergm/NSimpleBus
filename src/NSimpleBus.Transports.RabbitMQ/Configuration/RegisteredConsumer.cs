@@ -19,11 +19,6 @@ namespace NSimpleBus.Transports.RabbitMQ.Configuration
 
         public string Queue { get; private set; }
 
-        public IConsumer Consumer
-        {
-            get { return this.Other.Consumer; }
-        }
-
         public Type MessageType
         {
             get { return this.Other.MessageType; }

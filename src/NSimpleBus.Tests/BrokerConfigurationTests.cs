@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Reflection;
 using NSimpleBus.Configuration;
 using NSimpleBus.Serialization;
 using Rhino.Mocks;
@@ -23,7 +24,7 @@ namespace NSimpleBus.Tests
             using (mockRepository.Playback())
             {
                 BrokerConfiguration config = new BrokerConfiguration();
-                config.RegisterConsumer(consumer);
+                config.RegisterConsumer(() => consumer);
 
                 Assert.Equal(1, config.RegisteredConsumers.Count);
                 Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
@@ -32,17 +33,31 @@ namespace NSimpleBus.Tests
                 Assert.IsType(typeof (BrokerConfiguration.RegisteredConsumer), addedConsumer);
                 Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
                 Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
-                Assert.Same(consumer, addedConsumer.Consumer);
 
                 addedConsumer.Invoke(message);
             }
         }
 
         [Fact]
+        public void CanRegisterConsumerFromAssembly()
+        {
+            BrokerConfiguration config = new BrokerConfiguration();
+            config.RegisterConsumers(Assembly.GetExecutingAssembly());
+
+            Assert.Equal(1, config.RegisteredConsumers.Count);
+            Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
+
+            var addedConsumer = config.RegisteredConsumers[typeof(TestMessage)];
+            Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
+            Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
+            Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
+        }
+
+        [Fact]
         public void CanRegisterSubscriber()
         {
             var mockRepository = new MockRepository();
-            var subscriber = mockRepository.StrictMock<Consumes<TestMessage>.All>();
+            var subscriber = mockRepository.StrictMock<Subscribes<TestMessage>.All>();
             var message = new TestMessage();
 
             using (mockRepository.Record())
@@ -53,20 +68,35 @@ namespace NSimpleBus.Tests
             using (mockRepository.Playback())
             {
                 BrokerConfiguration config = new BrokerConfiguration();
-                config.RegisterSubscriber(subscriber);
+                config.RegisterSubscriber(() => subscriber);
 
                 Assert.Equal(1, config.RegisteredConsumers.Count);
                 Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
 
                 var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)];
-                Assert.IsType(typeof(BrokerConfiguration.RegisteredPubSubConsumer), addedSubscriber);
+                Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
                 Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
                 Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
                 Assert.Contains(typeof(TestMessage).FullName, addedSubscriber.Queue);
-                Assert.Same(subscriber, addedSubscriber.Consumer);
 
                 addedSubscriber.Invoke(message);
             }
+        }
+
+        [Fact]
+        public void CanRegisterSubscribersFromAssembly()
+        {
+            BrokerConfiguration config = new BrokerConfiguration();
+            config.RegisterSubscribers(Assembly.GetExecutingAssembly());
+
+            Assert.Equal(1, config.RegisteredConsumers.Count);
+            Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
+
+            var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)];
+            Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
+            Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
+            Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
+            Assert.Contains(typeof(TestMessage).FullName, addedSubscriber.Queue);
         }
 
         [Fact]

@@ -12,17 +12,19 @@ namespace NSimpleBus.Tests
     public class BusTests
     {
         [Fact]
-        public void CtorRegistersConsumers()
+        public void GetLiveConnectionRegistersConsumers()
         {
             var mockRepository = new MockRepository();
-            var config = mockRepository.StrictMock<IBrokerConfiguration>();
-            var connFactory = mockRepository.StrictMock<IBrokerConnectionFactory>();
-            var conn = mockRepository.StrictMock<IBrokerConnection>();
-            var consumer = mockRepository.StrictMock<IRegisteredConsumer>();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
+            var connFactory = mockRepository.DynamicMock<IBrokerConnectionFactory>();
+            var conn = mockRepository.DynamicMock<IBrokerConnection>();
+            var consumer = mockRepository.DynamicMock<IRegisteredConsumer>();
 
             using (mockRepository.Record())
             {
+                SetupResult.For(consumer.MessageType).Return(typeof (TestMessage));
                 SetupResult.For(connFactory.CreateConnection()).Return(conn);
+                SetupResult.For(conn.IsOpen).Return(true);
                 SetupResult.For(config.ConnectionFactory).Return(connFactory);
                 SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } });
 
@@ -31,7 +33,34 @@ namespace NSimpleBus.Tests
 
             using (mockRepository.Playback())
             {
-                new Bus(config);
+                new Bus(config).GetLiveConnection();
+            }
+        }
+
+        [Fact]
+        public void GetLiveConnectionReRegistersConsumersIfConnectionClosed()
+        {
+            var mockRepository = new MockRepository();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
+            var connFactory = mockRepository.DynamicMock<IBrokerConnectionFactory>();
+            var conn = mockRepository.DynamicMock<IBrokerConnection>();
+            var consumer = mockRepository.DynamicMock<IRegisteredConsumer>();
+
+            using (mockRepository.Record())
+            {
+                SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
+                SetupResult.For(connFactory.CreateConnection()).Return(conn);
+                SetupResult.For(conn.IsOpen).Return(false);
+                SetupResult.For(config.ConnectionFactory).Return(connFactory);
+                SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } });
+
+                Expect.Call(conn.Dispose).Repeat.Once();
+                Expect.Call(() => conn.Consume(consumer)).Repeat.Twice();
+            }
+
+            using (mockRepository.Playback())
+            {
+                new Bus(config).GetLiveConnection();
             }
         }
 
@@ -46,6 +75,7 @@ namespace NSimpleBus.Tests
             
             using (mockRepository.Record())
             {
+                SetupResult.For(consumer.MessageType).Return(typeof (TestMessage));
                 SetupResult.For(connFactory.CreateConnection()).Return(conn);
                 SetupResult.For(config.ConnectionFactory).Return(connFactory);
                 SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } });
@@ -57,6 +87,7 @@ namespace NSimpleBus.Tests
             using (mockRepository.Playback())
             {
                 var bus = new Bus(config);
+                bus.GetLiveConnection();
                 bus.Dispose();
             }
         }
@@ -73,6 +104,7 @@ namespace NSimpleBus.Tests
 
             using (mockRepository.Record())
             {
+                SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
                 SetupResult.For(connFactory.CreateConnection()).Return(conn);
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(config.ConnectionFactory).Return(connFactory);
@@ -111,12 +143,42 @@ namespace NSimpleBus.Tests
 
             using (mockRepository.Record())
             {
+                SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(config.ConnectionFactory).Return(connFactory);
                 SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } }); ;
                 SetupResult.For(conn.IsOpen).Return(true);
 
                 Expect.Call(connFactory.CreateConnection()).Repeat.Once().Return(conn);
+            }
+
+            using (mockRepository.Playback())
+            {
+                var bus = new Bus(config);
+                bus.Publish(message);
+                bus.Publish(message);
+            }
+        }
+
+        [Fact]
+        public void CreatesNewConnectionIfConnectionClosedWhenPublishing()
+        {
+            var mockRepository = new MockRepository();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
+            var connFactory = mockRepository.DynamicMock<IBrokerConnectionFactory>();
+            var conn = mockRepository.DynamicMock<IBrokerConnection>();
+            var consumer = mockRepository.DynamicMock<IRegisteredConsumer>();
+            var message = new TestMessage();
+
+            using (mockRepository.Record())
+            {
+                SetupResult.For(consumer.MessageType).Return(typeof (TestMessage));
+                SetupResult.For(config.Exchange).Return("ex");
+                SetupResult.For(config.ConnectionFactory).Return(connFactory);
+                SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } }); ;
+                SetupResult.For(conn.IsOpen).Return(false);
+
+                Expect.Call(connFactory.CreateConnection()).Repeat.Times(3).Return(conn);
             }
 
             using (mockRepository.Playback())

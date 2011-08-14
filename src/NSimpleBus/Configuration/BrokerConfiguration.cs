@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using log4net;
 using NSimpleBus.Serialization;
 using NSimpleBus.Transports;
 
@@ -9,6 +10,8 @@ namespace NSimpleBus.Configuration
 {
     public class BrokerConfiguration : IBrokerConfiguration
     {
+        private static readonly ILog Log = LogManager.GetLogger(typeof (BrokerConfiguration));
+
         public BrokerConfiguration()
         {
             RegisteredConsumers = new Dictionary<Type, IList<IRegisteredConsumer>>();
@@ -33,12 +36,25 @@ namespace NSimpleBus.Configuration
                 throw new ArgumentNullException("assembly");
             }
 
-            foreach (var type in assembly.GetTypes()
-                .Where(
-                    t => (nameSpace == null || t.Namespace.Equals(nameSpace)) && t.GetInterfaces().Contains(typeof(IConsumer))))
+            Log.InfoFormat("Looking for consumers in assembly {0}.", assembly.FullName);
+
+            try
             {
-                Type consumerType = type;
-                RegisterConsumer(() => (IConsumer)Activator.CreateInstance(consumerType), (t, c) => new RegisteredConsumer(t, c));
+                foreach (var type in assembly.GetTypes()
+                    .Where(
+                        t =>
+                        (nameSpace == null || t.Namespace.Equals(nameSpace)) &&
+                        t.GetInterfaces().Contains(typeof (IConsumer))))
+                {
+                    Type consumerType = type;
+                    RegisterConsumer(() => (IConsumer) Activator.CreateInstance(consumerType),
+                                     (t, c) => new RegisteredConsumer(t, c));
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("An exception occured while registering consumers in assembly {0}.", assembly.FullName), ex);
+                throw;
             }
         }
 
@@ -49,12 +65,22 @@ namespace NSimpleBus.Configuration
                 throw new ArgumentNullException("assembly");
             }
 
-            foreach (var type in assembly.GetTypes()
-                .Where(
-                    t => (nameSpace == null || t.Namespace.Equals(nameSpace)) && t.GetInterfaces().Contains(typeof(ISubscriber))))
+            Log.InfoFormat("Looking for subscribers in assembly {0}.", assembly.FullName);
+
+            try
             {
-                Type consumerType = type;
-                RegisterConsumer(() => (ISubscriber)Activator.CreateInstance(consumerType), (t, c) => new RegisteredSubscriber(t, c));
+                foreach (var type in assembly.GetTypes()
+                    .Where(
+                        t => (nameSpace == null || t.Namespace.Equals(nameSpace)) && t.GetInterfaces().Contains(typeof(ISubscriber))))
+                {
+                    Type consumerType = type;
+                    RegisterConsumer(() => (ISubscriber)Activator.CreateInstance(consumerType), (t, c) => new RegisteredSubscriber(t, c));
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(string.Format("An exception occured while registering subscribers in assembly {0}.", assembly.FullName), ex);
+                throw;
             }
         }
 
@@ -113,6 +139,8 @@ namespace NSimpleBus.Configuration
                     }
 
                     RegisteredConsumers[messageType].Add(newConsumer(messageType, consumerDelegate));
+
+                    Log.InfoFormat("Registered {0} as {1} for message type {2}.", consumer.GetType().FullName, typeof(T).Name, messageType.FullName);
                 }
             }
 

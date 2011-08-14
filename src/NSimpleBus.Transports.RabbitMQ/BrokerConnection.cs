@@ -1,4 +1,5 @@
 ﻿using System;
+using log4net;
 using NSimpleBus.Configuration;
 using NSimpleBus.Transports.RabbitMQ.Configuration;
 using NSimpleBus.Transports.RabbitMQ.Serialization;
@@ -8,6 +9,8 @@ namespace NSimpleBus.Transports.RabbitMQ
 {
     public class BrokerConnection : IBrokerConnection
     {
+        private static readonly ILog Log = LogManager.GetLogger(typeof (ILog));
+
         private readonly ICallbackConsumer callbackConsumer;
         private readonly IBrokerConfiguration configuration;
         private readonly IConnection connection;
@@ -37,7 +40,7 @@ namespace NSimpleBus.Transports.RabbitMQ
 
         public void Consume(IRegisteredConsumer registeredConsumer)
         {
-            IRegisteredConsumer internalRegistererConsumer =
+            IRegisteredConsumer internalRegisteredConsumer =
                 new RegisteredConsumer(
                     registeredConsumer,
                     this.configuration.AutoConfigure);
@@ -45,13 +48,13 @@ namespace NSimpleBus.Transports.RabbitMQ
             if (this.configuration.AutoConfigure != AutoConfigureMode.None)
             {
                 this.AutoConfigureQueue(
-                    internalRegistererConsumer.Queue,
+                    internalRegisteredConsumer.Queue,
                     this.configuration,
                     registeredConsumer.MessageType,
                     this.model);
             }
 
-            this.callbackConsumer.ConsumeQueue(internalRegistererConsumer);
+            this.callbackConsumer.ConsumeQueue(internalRegisteredConsumer);
         }
 
         public void Publish<T>(IMessageEnvelope<T> message, string exchange) where T : class
@@ -91,18 +94,24 @@ namespace NSimpleBus.Transports.RabbitMQ
             {
                 this.callbackConsumer.Close();
                 this.callbackConsumer.Dispose();
+
+                Log.Info("Consumer has been closed and disposed.");
             }
 
             if (this.model.IsOpen)
             {
                 this.model.Close(200, "Goodbye");
                 this.model.Dispose();
+
+                Log.Info("Model has been closed and disposed.");
             }
 
             if (this.connection.IsOpen)
             {
-                this.connection.Close();
+                this.connection.Close(200, "Goodbye");
                 this.connection.Dispose();
+
+                Log.Info("Connection has been closed and disposed.");
             }
         }
 
@@ -128,6 +137,7 @@ namespace NSimpleBus.Transports.RabbitMQ
             lock (m)
             {
                 m.ExchangeDeclare(config.Exchange, type, true, false, null);
+                Log.InfoFormat("Exchange '{0}' has been auto-configured as '{1}'.", config.Exchange, type);
             }
         }
 
@@ -139,10 +149,12 @@ namespace NSimpleBus.Transports.RabbitMQ
                 {
                     case AutoConfigureMode.PublishSubscribe:
                         m.QueueDeclare(queue, true, true, true, null);
+                        Log.InfoFormat("Queue '{0}' has been auto-configured as exclusive and auto-delete.", queue);
                         break;
 
                     case AutoConfigureMode.CompetingConsumer:
                         m.QueueDeclare(queue, true, false, false, null);
+                        Log.InfoFormat("Queue '{0}' has been auto-configured as non exclusive and persistent.", queue);
                         break;
 
                     default:
@@ -150,6 +162,7 @@ namespace NSimpleBus.Transports.RabbitMQ
                 }
 
                 m.QueueBind(queue, config.Exchange, messageType.ToRoutingKey());
+                Log.InfoFormat("Queue '{0}' has been bound to exchange '{1}'.", queue, config.Exchange);
             }
         }
     }

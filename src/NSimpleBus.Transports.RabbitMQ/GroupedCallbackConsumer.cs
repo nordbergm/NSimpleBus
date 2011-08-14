@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
+using log4net;
 using NSimpleBus.Configuration;
 using NSimpleBus.Transports.RabbitMQ.Serialization;
 using RabbitMQ.Client;
@@ -10,6 +10,8 @@ namespace NSimpleBus.Transports.RabbitMQ
 {
     public class GroupedCallbackConsumer : ICallbackConsumer
     {
+        private static readonly ILog Log = LogManager.GetLogger(typeof (GroupedCallbackConsumer));
+
         private readonly Thread workerThread;
         private readonly object lockObject = new object();
         private readonly Queue<QueueActivityConsumer.DeliverEventArgs> deliveryQueue = new Queue<QueueActivityConsumer.DeliverEventArgs>();
@@ -46,21 +48,44 @@ namespace NSimpleBus.Transports.RabbitMQ
                 while (deliveryQueue.Count > 0)
                 {
                     var args = deliveryQueue.Dequeue();
-                    this.CallbackWithMessage(args);
+
+                    try
+                    {
+                        this.CallbackWithMessage(args);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(
+                            string.Format("An exception was thrown while trying to consume a message from queue {0}.",
+                                          args.Queue), ex);
+                    }
                 }
             }
         }
 
         private void CallbackWithMessage(QueueActivityConsumer.DeliverEventArgs args)
         {
-            if (this.QueueConsumers.ContainsKey(args.Queue) && !this.QueueConsumers[args.Queue].ConsumeToken.IsClosed)
+            bool handled = false;
+            
+            if (this.QueueConsumers.ContainsKey(args.Queue) &&
+                !this.QueueConsumers[args.Queue].ConsumeToken.IsClosed)
             {
                 IMessageEnvelope<object> envelope = Serializer.DeserializeMessage(args);
 
                 foreach (var registeredConsumer in this.QueueConsumers[args.Queue].RegisteredConsumers)
                 {
                     registeredConsumer.Invoke(envelope.Message);
+                    handled = true;
+
+                    Log.InfoFormat("Successfully received and consumed message {0}.",
+                                   registeredConsumer.MessageType.FullName);
                 }
+            }
+
+            if (!handled)
+            {
+                Log.WarnFormat("Could not find a consumer for queue {0}, however the queue is being consumed.",
+                               args.Queue);
             }
         }
 
@@ -126,6 +151,8 @@ namespace NSimpleBus.Transports.RabbitMQ
                 queueConsumer.Value.ConsumeToken.Close();
                 queueConsumer.Value.ConsumeToken.Dispose();
             }
+
+            Log.InfoFormat("Consumer has been closed.");
         }
 
         public void Dispose()
@@ -134,6 +161,8 @@ namespace NSimpleBus.Transports.RabbitMQ
             {
                 this.Close();
             }
+
+            Log.InfoFormat("Consumer has been disposed.");
         }
 
         public class QueueConsumer

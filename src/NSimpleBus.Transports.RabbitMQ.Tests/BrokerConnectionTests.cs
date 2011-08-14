@@ -236,7 +236,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 SetupResult.For(rabbitConn.IsOpen).Return(true);
                 SetupResult.For(rabbitConn.CreateModel()).Return(rabbitModel);
 
-                Expect.Call(rabbitConn.Close);
+                Expect.Call(() => rabbitConn.Close(200, "Goodbye"));
             }
 
             using (mockRepository.Playback())
@@ -266,7 +266,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 Expect.Call(callbackConsumer.Dispose);
                 Expect.Call(() => rabbitModel.Close(200, "Goodbye"));
                 Expect.Call(rabbitModel.Dispose);
-                Expect.Call(rabbitConn.Close);
+                Expect.Call(() => rabbitConn.Close(200, "Goodbye"));
                 Expect.Call(rabbitConn.Dispose);
             }
 

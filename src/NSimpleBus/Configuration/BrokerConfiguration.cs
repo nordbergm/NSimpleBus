@@ -31,58 +31,65 @@ namespace NSimpleBus.Configuration
 
         public void RegisterConsumers(Assembly assembly, string nameSpace = null, Func<Type, IConsumer> resolver = null)
         {
-            if (assembly == null)
+            RegisterConsumers(new [] { assembly }, nameSpace != null ? new [] { nameSpace } : null, resolver);
+        }
+
+        public void RegisterConsumers(Assembly[] assemblies, string[] nameSpaces = null, Func<Type, IConsumer> resolver = null)
+        {
+            if (assemblies == null)
             {
                 throw new ArgumentNullException("assembly");
             }
 
-            Log.InfoFormat("Looking for consumers in Assembly {0}, Namespace = {1}.", assembly.FullName, nameSpace);
-
             try
             {
-                foreach (var type in assembly.GetTypes()
-                    .Where(
-                        t =>
-                        (nameSpace == null || t.Namespace.Equals(nameSpace)) &&
-                        t.GetInterfaces().Contains(typeof (IConsumer))))
+                foreach (var type in assemblies.SelectMany(a => a.GetTypes())
+                    .Where(t => (nameSpaces == null || nameSpaces.Contains(t.Namespace)) &&
+                            t.GetInterfaces().Contains(typeof (IConsumer))))
                 {
                     Type consumerType = type;
-                    RegisterConsumer(
-                        () => resolver != null ? resolver(consumerType) : 
+                    Func<Type, IConsumer> r = resolver;
+                    RegisterConsumer(() => r != null ? r(consumerType) : 
                             (IConsumer) Activator.CreateInstance(consumerType), (t, c) => new RegisteredConsumer(t, c));
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(string.Format("An exception occured while registering consumers in assembly {0}.", assembly.FullName), ex);
+                Log.Error("An exception occured while registering consumers.", ex);
                 throw;
             }
         }
 
         public void RegisterSubscribers(Assembly assembly, string nameSpace = null, Func<Type, ISubscriber> resolver = null)
         {
-            if (assembly == null)
+            RegisterSubscribers(new[] { assembly }, nameSpace != null ? new[] { nameSpace } : null, resolver);
+        }
+
+        public void RegisterSubscribers(Assembly[] assemblies, string[] nameSpaces = null, Func<Type, ISubscriber> resolver = null)
+        {
+            if (assemblies == null)
             {
                 throw new ArgumentNullException("assembly");
             }
 
-            Log.InfoFormat("Looking for subscribers in Assembly {0}, Namespace = {1}.", assembly.FullName, nameSpace);
-
             try
             {
-                foreach (var type in assembly.GetTypes()
+                foreach (var type in assemblies.SelectMany(a => a.GetTypes())
                     .Where(
-                        t => (nameSpace == null || t.Namespace.Equals(nameSpace)) && t.GetInterfaces().Contains(typeof(ISubscriber))))
+                        t =>
+                        (nameSpaces == null || nameSpaces.Contains(t.Namespace)) &&
+                        t.GetInterfaces().Contains(typeof(ISubscriber))))
                 {
                     Type consumerType = type;
+                    Func<Type, ISubscriber> r = resolver;
                     RegisterConsumer(
-                        () => resolver != null ? resolver(consumerType) : 
+                        () => r != null ? r(consumerType) :
                             (ISubscriber)Activator.CreateInstance(consumerType), (t, c) => new RegisteredSubscriber(t, c));
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(string.Format("An exception occured while registering subscribers in assembly {0}.", assembly.FullName), ex);
+                Log.Error("An exception occured while registering subscribers.", ex);
                 throw;
             }
         }

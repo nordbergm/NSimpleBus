@@ -14,7 +14,7 @@ namespace NSimpleBus.CompetingConsumer.Consumer
                 c.Credentials("rabbit", "rabbit");
                 c.UseRabbitMq();
                 c.CompetingConsumer();
-                c.RegisterConsumer(new SimpleMessageConsumer());
+                c.RegisterConsumer(() => new SimpleMessageConsumer());
             });
 
             Console.ReadLine();

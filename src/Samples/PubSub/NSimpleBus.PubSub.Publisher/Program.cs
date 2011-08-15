@@ -1,6 +1,6 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using NSimpleBus.Configuration;
-using System;
 using NSimpleBus.PubSub.Common;
 
 namespace NSimpleBus.PubSub.Publisher

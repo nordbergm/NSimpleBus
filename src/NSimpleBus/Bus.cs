@@ -33,7 +33,7 @@ namespace NSimpleBus
             {
                 var envelope = new MessageEnvelope<T>(message);
 
-                this.GetLiveConnection().Publish(envelope, this.Configuration.Exchange);
+                this.GetLiveConnection().Publish(envelope);
 
                 Log.InfoFormat("Published {0} to exchange {1}.", typeof (T).FullName, this.Configuration.Exchange);
             }

@@ -11,26 +11,26 @@ namespace NSimpleBus.Transports.RabbitMQ
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof (ILog));
 
-        private readonly ICallbackConsumer callbackConsumer;
-        private readonly IBrokerConfiguration configuration;
-        private readonly IConnection connection;
-        private readonly IModel model;
-        private readonly IMessageSerializer serializer;
+        private readonly ICallbackConsumer _callbackConsumer;
+        private readonly IBrokerConfiguration _configuration;
+        private readonly IConnection _connection;
+        private readonly IModel _model;
+        private readonly IMessageSerializer _serializer;
 
         public BrokerConnection(IConnection connection, IModel model, IBrokerConfiguration configuration, IMessageSerializer serializer, ICallbackConsumer callbackConsumer)
         {
-            this.connection = connection;
-            this.configuration = configuration;
-            this.model = model;
-            this.serializer = serializer;
-            this.callbackConsumer = callbackConsumer;
+            this._connection = connection;
+            this._configuration = configuration;
+            this._model = model;
+            this._serializer = serializer;
+            this._callbackConsumer = callbackConsumer;
         }
 
         #region IBrokerConnection Members
 
         public bool IsOpen
         {
-            get { return this.connection.IsOpen; }
+            get { return this._connection.IsOpen; }
         }
 
         public void Consume(IRegisteredConsumer registeredConsumer)
@@ -38,37 +38,37 @@ namespace NSimpleBus.Transports.RabbitMQ
             IRegisteredConsumer internalRegisteredConsumer =
                 new RegisteredConsumer(
                     registeredConsumer,
-                    this.configuration.AutoConfigure);
+                    this._configuration.AutoConfigure);
 
-            if (this.configuration.AutoConfigure != AutoConfigureMode.None)
+            if (this._configuration.AutoConfigure != AutoConfigureMode.None)
+            {
+                this.AutoConfigureExchange(this._configuration, registeredConsumer.MessageType, this._model);
+            }
+
+            if (this._configuration.AutoConfigure != AutoConfigureMode.None)
             {
                 this.AutoConfigureQueue(
                     internalRegisteredConsumer.Queue,
-                    this.configuration,
+                    this._configuration,
                     registeredConsumer.MessageType,
-                    this.model);
+                    this._model);
             }
 
-            if (configuration.AutoConfigure != AutoConfigureMode.None)
-            {
-                this.AutoConfigureExchange(configuration, registeredConsumer.MessageType, this.model);
-            }
-
-            this.callbackConsumer.ConsumeQueue(internalRegisteredConsumer);
+            this._callbackConsumer.ConsumeQueue(internalRegisteredConsumer);
         }
 
-        public void Publish<T>(IMessageEnvelope<T> message, string exchange) where T : class
+        public void Publish<T>(IMessageEnvelope<T> message) where T : class
         {
-            lock (this.model)
+            lock (this._model)
             {
                 IBasicProperties headers;
                 byte[] body;
                 string routingKey;
 
-                this.serializer.SerializeMessage(message, this.model, out headers, out body, out routingKey);
+                this._serializer.SerializeMessage(message, this._model, out headers, out body, out routingKey);
 
-                this.model.BasicPublish(
-                    string.Format(exchange, typeof(T).ToRoutingKey()),
+                this._model.BasicPublish(
+                    _configuration.InternalExchange(typeof(T)),
                     routingKey,
                     headers,
                     body);
@@ -90,26 +90,26 @@ namespace NSimpleBus.Transports.RabbitMQ
                 throw new InvalidOperationException("The connection is not open and cannot be closed.");
             }
 
-            if (this.callbackConsumer.IsRunning)
+            if (this._callbackConsumer.IsRunning)
             {
-                this.callbackConsumer.Close();
-                this.callbackConsumer.Dispose();
+                this._callbackConsumer.Close();
+                this._callbackConsumer.Dispose();
 
                 Log.Info("Consumer has been closed and disposed.");
             }
 
-            if (this.model.IsOpen)
+            if (this._model.IsOpen)
             {
-                this.model.Close(200, "Goodbye");
-                this.model.Dispose();
+                this._model.Close(200, "Goodbye");
+                this._model.Dispose();
 
                 Log.Info("Model has been closed and disposed.");
             }
 
-            if (this.connection.IsOpen)
+            if (this._connection.IsOpen)
             {
-                this.connection.Close(200, "Goodbye");
-                this.connection.Dispose();
+                this._connection.Close(200, "Goodbye");
+                this._connection.Dispose();
 
                 Log.Info("Connection has been closed and disposed.");
             }
@@ -136,8 +136,8 @@ namespace NSimpleBus.Transports.RabbitMQ
 
             lock (m)
             {
-                m.ExchangeDeclare(string.Format(config.Exchange, messageType.ToRoutingKey()), type, true, false, null);
-                Log.InfoFormat("Exchange '{0}' has been auto-configured as '{1}'.", config.Exchange, type);
+                m.ExchangeDeclare(config.InternalExchange(messageType), type, true, false, null);
+                Log.InfoFormat("Exchange '{0}' has been auto-configured as '{1}'.", config.InternalExchange(messageType), type);
             }
         }
 
@@ -150,15 +150,11 @@ namespace NSimpleBus.Transports.RabbitMQ
                 {
                     case AutoConfigureMode.PublishSubscribe:
                         m.QueueDeclare(queue, true, true, true, null);
-                        exchange = string.Format(config.Exchange, messageType.ToRoutingKey());
-
                         Log.InfoFormat("Queue '{0}' has been auto-configured as exclusive and auto-delete.", queue);
                         break;
 
                     case AutoConfigureMode.CompetingConsumer:
                         m.QueueDeclare(queue, true, false, false, null);
-                        exchange = config.Exchange;
-
                         Log.InfoFormat("Queue '{0}' has been auto-configured as non exclusive and persistent.", queue);
                         break;
 
@@ -166,8 +162,8 @@ namespace NSimpleBus.Transports.RabbitMQ
                         throw new NotSupportedException("The specified auto configuration mode is not supported.");
                 }
 
-                m.QueueBind(queue, exchange, messageType.ToRoutingKey());
-                Log.InfoFormat("Queue '{0}' has been bound to exchange '{1}'.", queue, config.Exchange);
+                m.QueueBind(queue, config.InternalExchange(messageType), messageType.ToRoutingKey());
+                Log.InfoFormat("Queue '{0}' has been bound to exchange '{1}'.", queue, config.InternalExchange(messageType));
             }
         }
     }

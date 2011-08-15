@@ -14,7 +14,7 @@ namespace NSimpleBus.PubSub.Subscriber
                 c.Credentials("rabbit", "rabbit");
                 c.UseRabbitMq();
                 c.PublishSubscribe();
-                c.RegisterSubscriber(new SimpleMessageConsumer());
+                c.RegisterSubscriber(() => new SimpleMessageSubscriber());
             });
 
             Console.ReadLine();

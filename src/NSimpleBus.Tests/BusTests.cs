@@ -111,16 +111,14 @@ namespace NSimpleBus.Tests
                 SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } }); ;
                 SetupResult.For(conn.IsOpen).Return(true);
 
-                Expect.Call(() => conn.Publish<TestMessage>(null, null))
+                Expect.Call(() => conn.Publish<TestMessage>(null))
                     .IgnoreArguments()
                     .WhenCalled(mi =>
                             {
                                 var envelope = mi.Arguments[0];
-                                var exchange = mi.Arguments[1];
 
                                 Assert.IsAssignableFrom(typeof(IMessageEnvelope<TestMessage>), envelope);
                                 Assert.Same(message, ((IMessageEnvelope<TestMessage>)envelope).Message);
-                                Assert.Equal("ex", exchange);
                             });
             }
 

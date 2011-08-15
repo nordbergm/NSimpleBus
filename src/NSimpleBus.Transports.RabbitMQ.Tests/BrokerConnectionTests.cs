@@ -37,7 +37,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 SetupResult.For(consumer.Queue).Return("q");
                 SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
 
-                Expect.Call(() => rabbitModel.ExchangeDeclare("ex", "fanout", true, false, null));
+                Expect.Call(() => rabbitModel.ExchangeDeclare(string.Concat("ex.", typeof(TestMessage).ToRoutingKey()), "fanout", true, false, null));
             }
 
             using (mockRepository.Playback())
@@ -210,6 +210,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
 
             using (mockRepository.Record())
             {
+                SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(rabbitConn.CreateModel()).Return(rabbitModel);
 
                 IBasicProperties headers;
@@ -227,7 +228,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
 
             using (mockRepository.Playback())
             {
-                new BrokerConnection(rabbitConn, rabbitModel, config, messageSerializer, callbackConsumer).Publish(envelope, "ex");
+                new BrokerConnection(rabbitConn, rabbitModel, config, messageSerializer, callbackConsumer).Publish(envelope);
             }
         }
 

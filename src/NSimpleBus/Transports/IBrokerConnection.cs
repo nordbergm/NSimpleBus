@@ -7,7 +7,7 @@ namespace NSimpleBus.Transports
     {
         bool IsOpen { get; }
         void Consume(IRegisteredConsumer registeredConsumer);
-        void Publish<T>(IMessageEnvelope<T> message, string exchange) where T : class;
+        void Publish<T>(IMessageEnvelope<T> message) where T : class;
         void Close();
     }
 }

@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using NSimpleBus.PubSub.Common;
 
 namespace NSimpleBus.PubSub.Subscriber
 {
-    public class SimpleMessageConsumer : Consumes<SimpleMessage>.All
+    public class SimpleMessageSubscriber : Subscribes<SimpleMessage>.All
     {
         public void Consume(SimpleMessage message)
         {

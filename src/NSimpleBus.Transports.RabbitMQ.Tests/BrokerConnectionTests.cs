@@ -25,19 +25,24 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var config = mockRepository.DynamicMock<IBrokerConfiguration>();
             var serializer = mockRepository.DynamicMock<IMessageSerializer>();
             var callbackConsumer = mockRepository.DynamicMock<ICallbackConsumer>();
+            var consumer = mockRepository.DynamicMock<IRegisteredConsumer>();
 
             using (mockRepository.Record())
             {
                 SetupResult.For(rabbitConn.CreateModel()).Return(rabbitModel);
+                
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(config.AutoConfigure).Return(AutoConfigureMode.PublishSubscribe);
+
+                SetupResult.For(consumer.Queue).Return("q");
+                SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
 
                 Expect.Call(() => rabbitModel.ExchangeDeclare("ex", "fanout", true, false, null));
             }
 
             using (mockRepository.Playback())
             {
-                new BrokerConnection(rabbitConn, rabbitModel, config, serializer, callbackConsumer);
+                new BrokerConnection(rabbitConn, rabbitModel, config, serializer, callbackConsumer).Consume(consumer);
             }
         }
 
@@ -51,19 +56,24 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var config = mockRepository.DynamicMock<IBrokerConfiguration>();
             var serializer = mockRepository.DynamicMock<IMessageSerializer>();
             var callbackConsumer = mockRepository.DynamicMock<ICallbackConsumer>();
+            var consumer = mockRepository.DynamicMock<IRegisteredConsumer>();
 
             using (mockRepository.Record())
             {
                 SetupResult.For(rabbitConn.CreateModel()).Return(rabbitModel);
+                
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(config.AutoConfigure).Return(AutoConfigureMode.CompetingConsumer);
 
+                SetupResult.For(consumer.Queue).Return("q");
+                SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
+                
                 Expect.Call(() => rabbitModel.ExchangeDeclare("ex", "direct", true, false, null));
             }
 
             using (mockRepository.Playback())
             {
-                new BrokerConnection(rabbitConn, rabbitModel, config, serializer, callbackConsumer);
+                new BrokerConnection(rabbitConn, rabbitModel, config, serializer, callbackConsumer).Consume(consumer);
             }
         }
 

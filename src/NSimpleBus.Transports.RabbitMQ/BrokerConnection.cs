@@ -24,11 +24,6 @@ namespace NSimpleBus.Transports.RabbitMQ
             this.model = model;
             this.serializer = serializer;
             this.callbackConsumer = callbackConsumer;
-
-            if (configuration.AutoConfigure != AutoConfigureMode.None)
-            {
-                this.AutoConfigureExchange(configuration, this.model);
-            }
         }
 
         #region IBrokerConnection Members
@@ -54,6 +49,11 @@ namespace NSimpleBus.Transports.RabbitMQ
                     this.model);
             }
 
+            if (configuration.AutoConfigure != AutoConfigureMode.None)
+            {
+                this.AutoConfigureExchange(configuration, registeredConsumer.MessageType, this.model);
+            }
+
             this.callbackConsumer.ConsumeQueue(internalRegisteredConsumer);
         }
 
@@ -68,7 +68,7 @@ namespace NSimpleBus.Transports.RabbitMQ
                 this.serializer.SerializeMessage(message, this.model, out headers, out body, out routingKey);
 
                 this.model.BasicPublish(
-                    exchange,
+                    string.Format(exchange, typeof(T).ToRoutingKey()),
                     routingKey,
                     headers,
                     body);
@@ -117,7 +117,7 @@ namespace NSimpleBus.Transports.RabbitMQ
 
         #endregion
 
-        private void AutoConfigureExchange(IBrokerConfiguration config, IModel m)
+        private void AutoConfigureExchange(IBrokerConfiguration config, Type messageType, IModel m)
         {
             string type;
             switch (config.AutoConfigure)
@@ -136,7 +136,7 @@ namespace NSimpleBus.Transports.RabbitMQ
 
             lock (m)
             {
-                m.ExchangeDeclare(config.Exchange, type, true, false, null);
+                m.ExchangeDeclare(string.Format(config.Exchange, messageType.ToRoutingKey()), type, true, false, null);
                 Log.InfoFormat("Exchange '{0}' has been auto-configured as '{1}'.", config.Exchange, type);
             }
         }
@@ -145,15 +145,20 @@ namespace NSimpleBus.Transports.RabbitMQ
         {
             lock (m)
             {
+                string exchange;
                 switch (config.AutoConfigure)
                 {
                     case AutoConfigureMode.PublishSubscribe:
                         m.QueueDeclare(queue, true, true, true, null);
+                        exchange = string.Format(config.Exchange, messageType.ToRoutingKey());
+
                         Log.InfoFormat("Queue '{0}' has been auto-configured as exclusive and auto-delete.", queue);
                         break;
 
                     case AutoConfigureMode.CompetingConsumer:
                         m.QueueDeclare(queue, true, false, false, null);
+                        exchange = config.Exchange;
+
                         Log.InfoFormat("Queue '{0}' has been auto-configured as non exclusive and persistent.", queue);
                         break;
 
@@ -161,7 +166,7 @@ namespace NSimpleBus.Transports.RabbitMQ
                         throw new NotSupportedException("The specified auto configuration mode is not supported.");
                 }
 
-                m.QueueBind(queue, config.Exchange, messageType.ToRoutingKey());
+                m.QueueBind(queue, exchange, messageType.ToRoutingKey());
                 Log.InfoFormat("Queue '{0}' has been bound to exchange '{1}'.", queue, config.Exchange);
             }
         }

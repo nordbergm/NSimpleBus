@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Reflection;
 using NSimpleBus.Configuration;
 using NSimpleBus.Serialization;
@@ -60,6 +61,24 @@ namespace NSimpleBus.Tests
             Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
             Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
             Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
+        }
+
+        [Fact]
+        public void ConsumersRegisteredFromAssemblyCanHaveCustomResolver()
+        {
+            BrokerConfiguration config = new BrokerConfiguration();
+            int numCalls = 0;
+            config.RegisterConsumers(Assembly.GetExecutingAssembly(), null,
+            t =>
+            {
+                numCalls++;
+                return (IConsumer)Activator.CreateInstance(t);
+            });
+
+            Assert.Equal(1, config.RegisteredConsumers.Count);
+            Assert.Equal(2, config.RegisteredConsumers[typeof(TestMessage)].Count);
+
+            Assert.NotEqual(0, numCalls);
         }
 
         [Fact]
@@ -130,6 +149,24 @@ namespace NSimpleBus.Tests
             Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
             Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
             Assert.Contains(typeof(TestMessage).FullName, addedSubscriber.Queue);
+        }
+
+        [Fact]
+        public void SubscribersRegisteredFromAssemblyCanHaveCustomResolver()
+        {
+            BrokerConfiguration config = new BrokerConfiguration();
+            int numCalls = 0;
+            config.RegisterSubscribers(Assembly.GetExecutingAssembly(), null,
+            t =>
+            {
+                numCalls++;
+                return (ISubscriber)Activator.CreateInstance(t);
+            });
+
+            Assert.Equal(1, config.RegisteredConsumers.Count);
+            Assert.Equal(2, config.RegisteredConsumers[typeof(TestMessage)].Count);
+
+            Assert.NotEqual(0, numCalls);
         }
 
         [Fact]

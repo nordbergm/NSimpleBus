@@ -20,7 +20,7 @@ namespace NSimpleBus.Configuration
         IBrokerConnectionFactory ConnectionFactory { get; set; }
         void RegisterConsumer(Func<IConsumer> consumer);
         void RegisterSubscriber(Func<ISubscriber> consumer);
-        void RegisterConsumers(Assembly assembly, string nameSpace = null);
-        void RegisterSubscribers(Assembly assembly, string nameSpace = null);
+        void RegisterConsumers(Assembly assembly, string nameSpace = null, Func<Type, IConsumer> resolver = null);
+        void RegisterSubscribers(Assembly assembly, string nameSpace = null, Func<Type, ISubscriber> resolver = null);
     }
 }

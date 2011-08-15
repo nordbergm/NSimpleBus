@@ -29,14 +29,14 @@ namespace NSimpleBus.Configuration
         public IDictionary<Type, IList<IRegisteredConsumer>> RegisteredConsumers { get; set; }
         public IBrokerConnectionFactory ConnectionFactory { get; set; }
 
-        public void RegisterConsumers(Assembly assembly, string nameSpace = null)
+        public void RegisterConsumers(Assembly assembly, string nameSpace = null, Func<Type, IConsumer> resolver = null)
         {
             if (assembly == null)
             {
                 throw new ArgumentNullException("assembly");
             }
 
-            Log.InfoFormat("Looking for consumers in assembly {0}.", assembly.FullName);
+            Log.InfoFormat("Looking for consumers in Assembly {0}, Namespace = {1}.", assembly.FullName, nameSpace);
 
             try
             {
@@ -47,8 +47,9 @@ namespace NSimpleBus.Configuration
                         t.GetInterfaces().Contains(typeof (IConsumer))))
                 {
                     Type consumerType = type;
-                    RegisterConsumer(() => (IConsumer) Activator.CreateInstance(consumerType),
-                                     (t, c) => new RegisteredConsumer(t, c));
+                    RegisterConsumer(
+                        () => resolver != null ? resolver(consumerType) : 
+                            (IConsumer) Activator.CreateInstance(consumerType), (t, c) => new RegisteredConsumer(t, c));
                 }
             }
             catch (Exception ex)
@@ -58,14 +59,14 @@ namespace NSimpleBus.Configuration
             }
         }
 
-        public void RegisterSubscribers(Assembly assembly, string nameSpace = null)
+        public void RegisterSubscribers(Assembly assembly, string nameSpace = null, Func<Type, ISubscriber> resolver = null)
         {
             if (assembly == null)
             {
                 throw new ArgumentNullException("assembly");
             }
 
-            Log.InfoFormat("Looking for subscribers in assembly {0}.", assembly.FullName);
+            Log.InfoFormat("Looking for subscribers in Assembly {0}, Namespace = {1}.", assembly.FullName, nameSpace);
 
             try
             {
@@ -74,7 +75,9 @@ namespace NSimpleBus.Configuration
                         t => (nameSpace == null || t.Namespace.Equals(nameSpace)) && t.GetInterfaces().Contains(typeof(ISubscriber))))
                 {
                     Type consumerType = type;
-                    RegisterConsumer(() => (ISubscriber)Activator.CreateInstance(consumerType), (t, c) => new RegisteredSubscriber(t, c));
+                    RegisterConsumer(
+                        () => resolver != null ? resolver(consumerType) : 
+                            (ISubscriber)Activator.CreateInstance(consumerType), (t, c) => new RegisteredSubscriber(t, c));
                 }
             }
             catch (Exception ex)

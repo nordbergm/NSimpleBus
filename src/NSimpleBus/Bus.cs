@@ -15,6 +15,7 @@ namespace NSimpleBus
         public Bus(IBrokerConfiguration configuration)
         {
             this.Configuration = configuration;
+            this._connection = this.GetLiveConnection();
         }
 
         #region IBus Members

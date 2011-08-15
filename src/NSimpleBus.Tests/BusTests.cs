@@ -12,7 +12,7 @@ namespace NSimpleBus.Tests
     public class BusTests
     {
         [Fact]
-        public void GetLiveConnectionRegistersConsumers()
+        public void CtorRegistersConsumers()
         {
             var mockRepository = new MockRepository();
             var config = mockRepository.DynamicMock<IBrokerConfiguration>();
@@ -33,7 +33,7 @@ namespace NSimpleBus.Tests
 
             using (mockRepository.Playback())
             {
-                new Bus(config).GetLiveConnection();
+                new Bus(config);
             }
         }
 
@@ -178,7 +178,7 @@ namespace NSimpleBus.Tests
                 SetupResult.For(config.RegisteredConsumers).Return(new Dictionary<Type, IList<IRegisteredConsumer>> { { typeof(TestMessage), new List<IRegisteredConsumer> { consumer } } }); ;
                 SetupResult.For(conn.IsOpen).Return(false);
 
-                Expect.Call(connFactory.CreateConnection()).Repeat.Times(3).Return(conn);
+                Expect.Call(connFactory.CreateConnection()).Repeat.Times(4).Return(conn);
             }
 
             using (mockRepository.Playback())

@@ -167,17 +167,26 @@ namespace NSimpleBus.Configuration
                 MessageType = messageType;
                 Queue = messageType.FullName;
                 Consumer = consumer;
-                ConsumeMethod = consumer.Invoke().GetType().GetMethod("Consume", new[] { messageType });
+                ConsumeMethods = new List<MethodInfo>();
+
+                var interfaces = consumer.Invoke().GetType().GetInterfaces();
+                foreach (var iface in interfaces.Where(i => i.GetInterfaces().Contains(typeof(IConsumer))))
+                {
+                    ConsumeMethods.Add(iface.GetMethod("Consume", new[] { messageType }));
+                }
             }
 
             public Type MessageType { get; protected set; }
             public Func<IConsumer> Consumer { get; protected set; }
-            public MethodInfo ConsumeMethod { get; protected set; }
+            public IList<MethodInfo> ConsumeMethods { get; protected set; }
             public string Queue { get; protected set; }
 
             public void Invoke(object message)
             {
-                ConsumeMethod.Invoke(Consumer.Invoke(), new [] { message });
+                foreach (var method in ConsumeMethods)
+                {
+                    method.Invoke(Consumer.Invoke(), new[] { message });   
+                }
             }
         }
 
@@ -187,18 +196,27 @@ namespace NSimpleBus.Configuration
             {
                 MessageType = messageType;
                 Subscriber = subscriber;
-                ConsumeMethod = subscriber.Invoke().GetType().GetMethod("Consume", new[] { messageType });
                 Queue = string.Format("{0}.{1}", messageType.FullName, Guid.NewGuid().ToString("n"));
+                ConsumeMethods = new List<MethodInfo>();
+
+                var interfaces = subscriber.Invoke().GetType().GetInterfaces();
+                foreach (var iface in interfaces.Where(i => i.GetInterfaces().Contains(typeof(ISubscriber))))
+                {
+                    ConsumeMethods.Add(iface.GetMethod("Consume", new[] { messageType }));
+                }
             }
 
             public Type MessageType { get; protected set; }
             public Func<ISubscriber> Subscriber { get; protected set; }
-            public MethodInfo ConsumeMethod { get; protected set; }
+            public IList<MethodInfo> ConsumeMethods { get; protected set; }
             public string Queue { get; protected set; }
 
             public void Invoke(object message)
             {
-                ConsumeMethod.Invoke(Subscriber.Invoke(), new[] { message });
+                foreach (var method in ConsumeMethods)
+                {
+                    method.Invoke(Subscriber.Invoke(), new[] { message });
+                }
             }
         }
     }

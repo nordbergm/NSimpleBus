@@ -13,6 +13,27 @@ namespace NSimpleBus.Tests
     public class BrokerConfigurationTests
     {
         [Fact]
+        public void CanRegisterExplicitlyImplementedConsumer()
+        {
+            var consumer = new ExplicitTestMessageConsumer();
+            var message = new TestMessage();
+
+            BrokerConfiguration config = new BrokerConfiguration();
+            config.RegisterConsumer(() => consumer);
+
+            Assert.Equal(1, config.RegisteredConsumers.Count);
+            Assert.Equal(1, config.RegisteredConsumers[typeof(TestMessage)].Count);
+            Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
+
+            var addedConsumer = config.RegisteredConsumers[typeof(TestMessage)][0];
+            Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
+            Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
+            Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
+
+            addedConsumer.Invoke(message);
+        }
+
+        [Fact]
         public void CanRegisterConsumer()
         {
             var mockRepository = new MockRepository();
@@ -49,7 +70,7 @@ namespace NSimpleBus.Tests
             config.RegisterConsumers(Assembly.GetExecutingAssembly());
 
             Assert.Equal(1, config.RegisteredConsumers.Count);
-            Assert.Equal(2, config.RegisteredConsumers[typeof(TestMessage)].Count);
+            Assert.Equal(3, config.RegisteredConsumers[typeof(TestMessage)].Count);
             Assert.Equal(typeof(TestMessage), config.RegisteredConsumers.Keys.Single());
 
             var addedConsumer = config.RegisteredConsumers[typeof(TestMessage)][0];
@@ -76,7 +97,7 @@ namespace NSimpleBus.Tests
             });
 
             Assert.Equal(1, config.RegisteredConsumers.Count);
-            Assert.Equal(2, config.RegisteredConsumers[typeof(TestMessage)].Count);
+            Assert.Equal(3, config.RegisteredConsumers[typeof(TestMessage)].Count);
 
             Assert.NotEqual(0, numCalls);
         }

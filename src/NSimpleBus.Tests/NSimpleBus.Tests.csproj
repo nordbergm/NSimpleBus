@@ -42,6 +42,7 @@
   <ItemGroup>
     <Compile Include="BrokerConfigurationTests.cs" />
     <Compile Include="BusTests.cs" />
+    <Compile Include="ExplicitTestMessageConsumer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Namespace1\TestConsumer.cs" />
     <Compile Include="Namespace2\TestConsumer2.cs" />

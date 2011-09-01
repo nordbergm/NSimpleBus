@@ -1,7 +1,7 @@
 ﻿name: NSimpleBus
 description: A simple to implement service bus for .NET which utilises RabbitMQ (by default) for pub/sub and distributed worker queue scenarios.
 depends: openwrap anchored content
-depends: RabbitMQ.Client
+depends: RabbitMQ.Client = 2.6.0
 depends: ServiceStack.Text
 depends: log4net
 build: msbuild;project=src\NSimpleBus\NSimpleBus.csproj;project=src\NSimpleBus.Transports.RabbitMQ\NSimpleBus.Transports.RabbitMQ.csproj

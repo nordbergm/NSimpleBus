@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>NSimpleBus</id>
+    <version>0.1.1.0</version>
+    <title />
+    <authors>Mattias Nordberg</authors>
+    <owners />
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A simple to implement service bus for .NET which utilises RabbitMQ (by default) for pub/sub and distributed worker queue scenarios.</description>
+    <dependencies>
+      <dependency id="RabbitMQ.Client" version="2.6.0" />
+      <dependency id="ServiceStack.Text" />
+      <dependency id="log4net" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="**\NSimpleBus.dll" /> 
+    <file src="**\NSimpleBus.Transports.RabbitMQ.dll" />
+    <file src="**\NSimpleBus.pdb" /> 
+    <file src="**\NSimpleBus.Transports.RabbitMQ.pdb" />
+  </files>
+</package>

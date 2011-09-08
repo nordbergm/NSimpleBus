@@ -15,6 +15,7 @@ namespace NSimpleBus.Configuration
         string Exchange { get; set; }
         string VirtualHost { get; set; }
         AutoConfigureMode AutoConfigure { get; set; }
+        CreatePrincipalDelegate CreatePrincipal { get; set; }
         ISerializer Serializer { get; set; }
         IDictionary<Type, IList<IRegisteredConsumer>> RegisteredConsumers { get; set; }
         IBrokerConnectionFactory ConnectionFactory { get; set; }

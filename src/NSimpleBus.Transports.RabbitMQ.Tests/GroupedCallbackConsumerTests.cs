@@ -5,6 +5,8 @@ using RabbitMQ.Client;
 using Rhino.Mocks;
 using Xunit;
 using NSimpleBus.Tests;
+using System.Threading;
+using System.Security.Principal;
 
 namespace NSimpleBus.Transports.RabbitMQ.Tests
 {
@@ -16,8 +18,9 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var mockRepository = new MockRepository();
             var rabbitModel = mockRepository.DynamicMock<IModel>();
             var messageSerializer = mockRepository.DynamicMock<IMessageSerializer>();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
 
-            var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer);
+            var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer, config);
             Assert.True(callbackConsumer.IsRunning);
 
             callbackConsumer.Close();
@@ -30,8 +33,9 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var mockRepository = new MockRepository();
             var rabbitModel = mockRepository.DynamicMock<IModel>();
             var messageSerializer = mockRepository.DynamicMock<IMessageSerializer>();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
 
-            var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer);
+            var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer, config);
             callbackConsumer.Close();
 
             Assert.False(callbackConsumer.IsRunning);
@@ -43,8 +47,9 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var mockRepository = new MockRepository();
             var rabbitModel = mockRepository.DynamicMock<IModel>();
             var messageSerializer = mockRepository.DynamicMock<IMessageSerializer>();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
 
-            var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer);
+            var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer, config);
             callbackConsumer.Dispose();
 
             Assert.False(callbackConsumer.IsRunning);
@@ -57,6 +62,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var rabbitModel = mockRepository.DynamicMock<IModel>();
             var messageSerializer = mockRepository.DynamicMock<IMessageSerializer>();
             var registeredConsumer = mockRepository.DynamicMock<IRegisteredConsumer>();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
 
             using (mockRepository.Record())
             {
@@ -65,7 +71,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
 
             using (mockRepository.Playback())
             {
-                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer);
+                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer, config);
                 callbackConsumer.ConsumeQueue(registeredConsumer);
 
                 GroupedCallbackConsumer.QueueConsumer queueConsumer = callbackConsumer.QueueConsumers.Single().Value;
@@ -85,6 +91,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var rabbitModel = mockRepository.DynamicMock<IModel>();
             var messageSerializer = mockRepository.DynamicMock<IMessageSerializer>();
             var registeredConsumer = mockRepository.DynamicMock<IRegisteredConsumer>();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
 
             using (mockRepository.Record())
             {
@@ -102,7 +109,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
 
             using (mockRepository.Playback())
             {
-                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer);
+                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer, config);
                 callbackConsumer.ConsumeQueue(registeredConsumer);
 
                 Assert.Equal(1, callbackConsumer.QueueConsumers.Count);
@@ -122,6 +129,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var messageSerializer = mockRepository.DynamicMock<IMessageSerializer>();
             var registeredConsumer = mockRepository.DynamicMock<IRegisteredConsumer>();
             var properties = mockRepository.Stub<IBasicProperties>();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
 
             using (mockRepository.Record())
             {
@@ -134,7 +142,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
 
             using (mockRepository.Playback())
             {
-                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer);
+                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer, config);
                 callbackConsumer.ConsumeQueue(registeredConsumer);
                 callbackConsumer.QueueConsumers["q"].Consumer.HandleBasicDeliver("ct1", 1, false, "ex", typeof(TestMessage).ToRoutingKey(), properties, new byte[0]);
 
@@ -152,6 +160,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var registeredConsumer = mockRepository.DynamicMock<IRegisteredConsumer>();
             var properties = mockRepository.Stub<IBasicProperties>();
             var envelope = mockRepository.DynamicMock<IMessageEnvelope<TestMessage>>();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
 
             using (mockRepository.Record())
             {
@@ -178,7 +187,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
 
             using (mockRepository.Playback())
             {
-                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer);
+                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer, config);
                 callbackConsumer.ConsumeQueue(registeredConsumer);
                 callbackConsumer.QueueConsumers["q"].Consumer.HandleBasicDeliver("ct1", 1, false, "ex", typeof(TestMessage).ToRoutingKey(), properties, new byte[0]);
 
@@ -197,6 +206,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var properties = mockRepository.Stub<IBasicProperties>();
             var envelope = mockRepository.DynamicMock<IMessageEnvelope<TestMessage>>();
             var message = new TestMessage();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
 
             using (mockRepository.Record())
             {
@@ -210,7 +220,43 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
 
             using (mockRepository.Playback())
             {
-                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer);
+                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer, config);
+                callbackConsumer.ConsumeQueue(registeredConsumer);
+                callbackConsumer.QueueConsumers["q"].Consumer.HandleBasicDeliver("ct1", 1, false, "ex", typeof(TestMessage).ToRoutingKey(), properties, new byte[0]);
+
+                callbackConsumer.Close();
+                callbackConsumer.Dispose();
+            }
+        }
+
+        [Fact]
+        public void SetsPrincipalOnDelivery()
+        {
+            var mockRepository = new MockRepository();
+            var rabbitModel = mockRepository.DynamicMock<IModel>();
+            var messageSerializer = mockRepository.DynamicMock<IMessageSerializer>();
+            var registeredConsumer = mockRepository.DynamicMock<IRegisteredConsumer>();
+            var properties = mockRepository.Stub<IBasicProperties>();
+            var envelope = mockRepository.DynamicMock<IMessageEnvelope<TestMessage>>();
+            var message = new TestMessage();
+            var config = mockRepository.DynamicMock<IBrokerConfiguration>();
+
+            using (mockRepository.Record())
+            {
+                SetupResult.For(envelope.UserName).Return("user1");
+                SetupResult.For(registeredConsumer.MessageType).Return(typeof(TestMessage));
+                SetupResult.For(registeredConsumer.Queue).Return("q");
+                SetupResult.For(envelope.Message).Return(message);
+                SetupResult.For(messageSerializer.DeserializeMessage(null)).IgnoreArguments().Return(envelope);
+                SetupResult.For(config.CreatePrincipal).Return(
+                    n => new GenericPrincipal(new GenericIdentity(n + "set"), new string[0]));
+
+                Expect.Call(() => registeredConsumer.Invoke(message)).WhenCalled(mi => Assert.Equal("user1set", Thread.CurrentPrincipal.Identity.Name));
+            }
+
+            using (mockRepository.Playback())
+            {
+                var callbackConsumer = new GroupedCallbackConsumer(rabbitModel, messageSerializer, config);
                 callbackConsumer.ConsumeQueue(registeredConsumer);
                 callbackConsumer.QueueConsumers["q"].Consumer.HandleBasicDeliver("ct1", 1, false, "ex", typeof(TestMessage).ToRoutingKey(), properties, new byte[0]);
 

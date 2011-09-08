@@ -38,7 +38,7 @@ namespace NSimpleBus.Transports.RabbitMQ
                         model, 
                         configuration,
                         serializer, 
-                        new GroupedCallbackConsumer(model, serializer));
+                        new GroupedCallbackConsumer(model, serializer, configuration));
         }
     }
 }

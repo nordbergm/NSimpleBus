@@ -13,6 +13,11 @@
     <SolutionFile>..\NSimpleBus.sln</SolutionFile>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Version Condition="$(BUILD_NUMBER) != ''">$(BUILD_NUMBER)</Version>
+    <Version Condition="$(BUILD_NUMBER) == ''">1.0.0.0</Version>
+  </PropertyGroup>
+
   <Target Name="_Initialize">
     <!-- Initializes the environment and remote repositories -->
     <InitializeOpenWrap CurrentDirectory="$(MSBuildProjectDirectory)\..">
@@ -26,6 +31,19 @@
   </Target>
   
   <Target Name="Compile">
+    <AssemblyInfo CodeLanguage="CS"
+        OutputFile="$(SrcDir)\AssemblyInfo.cs"
+        AssemblyTitle="NSimpleBus"
+        AssemblyDescription="A simple to implement service bus for .NET which utilises RabbitMQ (by default) for pub/sub and distributed worker queue scenarios."
+        AssemblyCompany=""
+        AssemblyProduct="NSimpleBus"
+        AssemblyCopyright=""
+        ComVisible="false"
+        CLSCompliant="true"
+        Guid="64EDCBE8-C29D-465E-B490-685800814E92"
+        AssemblyVersion="$(Version)"
+        AssemblyFileVersion="$(Version)"/>
+    
       <MSBuild Projects="$(SolutionFile)" Properties="Configuration=$(Configuration)"  />
   </Target>
 

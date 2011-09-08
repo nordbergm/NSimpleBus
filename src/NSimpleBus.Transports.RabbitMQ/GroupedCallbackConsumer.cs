@@ -16,10 +16,11 @@ namespace NSimpleBus.Transports.RabbitMQ
         private readonly object lockObject = new object();
         private readonly Queue<QueueActivityConsumer.DeliverEventArgs> deliveryQueue = new Queue<QueueActivityConsumer.DeliverEventArgs>();
 
-        public GroupedCallbackConsumer(IModel model, IMessageSerializer serializer)
+        public GroupedCallbackConsumer(IModel model, IMessageSerializer serializer, IBrokerConfiguration config)
         {
             Model = model;
             Serializer = serializer;
+            Config = config;
             IsRunning = true;
             QueueConsumers = new Dictionary<string, QueueConsumer>();
 
@@ -34,6 +35,7 @@ namespace NSimpleBus.Transports.RabbitMQ
         public bool IsRunning { get; private set; }
         public IModel Model { get; private set; }
         public IMessageSerializer Serializer { get; private set; }
+        public IBrokerConfiguration Config { get; set; }
         public IDictionary<string, QueueConsumer> QueueConsumers { get; private set; }
 
         private void StartBackgroundConsume()
@@ -71,6 +73,11 @@ namespace NSimpleBus.Transports.RabbitMQ
                 !this.QueueConsumers[args.Queue].ConsumeToken.IsClosed)
             {
                 IMessageEnvelope<object> envelope = Serializer.DeserializeMessage(args);
+
+                if (!string.IsNullOrEmpty(envelope.UserName))
+                {
+                    Thread.CurrentPrincipal = Config.CreatePrincipal(envelope.UserName);
+                }
 
                 foreach (var registeredConsumer in this.QueueConsumers[args.Queue].RegisteredConsumers)
                 {

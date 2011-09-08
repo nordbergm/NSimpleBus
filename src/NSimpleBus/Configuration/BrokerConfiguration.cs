@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Security.Principal;
 using log4net;
 using NSimpleBus.Serialization;
 using NSimpleBus.Transports;
@@ -14,14 +15,18 @@ namespace NSimpleBus.Configuration
 
         public BrokerConfiguration()
         {
-            RegisteredConsumers = new Dictionary<Type, IList<IRegisteredConsumer>>();
-            AutoConfigure = AutoConfigureMode.None;
+            this.RegisteredConsumers = new Dictionary<Type, IList<IRegisteredConsumer>>();
+            this.AutoConfigure = AutoConfigureMode.None;
+            this.CreatePrincipal = n => new GenericPrincipal(new GenericIdentity(n), new string[0]);
         }
+
+        #region IBrokerConfiguration Members
 
         public string UserName { get; set; }
         public string Password { get; set; }
         public string HostName { get; set; }
         public int Port { get; set; }
+        public CreatePrincipalDelegate CreatePrincipal { get; set; }
         public ISerializer Serializer { get; set; }
         public string Exchange { get; set; }
         public string VirtualHost { get; set; }
@@ -31,10 +36,11 @@ namespace NSimpleBus.Configuration
 
         public void RegisterConsumers(Assembly assembly, string nameSpace = null, Func<Type, IConsumer> resolver = null)
         {
-            RegisterConsumers(new [] { assembly }, nameSpace != null ? new [] { nameSpace } : null, resolver);
+            RegisterConsumers(new[] {assembly}, nameSpace != null ? new[] {nameSpace} : null, resolver);
         }
 
-        public void RegisterConsumers(Assembly[] assemblies, string[] nameSpaces = null, Func<Type, IConsumer> resolver = null)
+        public void RegisterConsumers(Assembly[] assemblies, string[] nameSpaces = null,
+                                      Func<Type, IConsumer> resolver = null)
         {
             if (assemblies == null)
             {
@@ -43,14 +49,16 @@ namespace NSimpleBus.Configuration
 
             try
             {
-                foreach (var type in assemblies.SelectMany(a => a.GetTypes())
+                foreach (Type type in assemblies.SelectMany(a => a.GetTypes())
                     .Where(t => (nameSpaces == null || nameSpaces.Contains(t.Namespace)) &&
-                            t.GetInterfaces().Contains(typeof (IConsumer))))
+                                t.GetInterfaces().Contains(typeof (IConsumer))))
                 {
                     Type consumerType = type;
                     Func<Type, IConsumer> r = resolver;
-                    RegisterConsumer(() => r != null ? r(consumerType) : 
-                            (IConsumer) Activator.CreateInstance(consumerType), (t, c) => new RegisteredConsumer(t, c));
+                    this.RegisterConsumer(() => r != null
+                                                    ? r(consumerType)
+                                                    : (IConsumer) Activator.CreateInstance(consumerType),
+                                          (t, c) => new RegisteredConsumer(t, c));
                 }
             }
             catch (Exception ex)
@@ -60,12 +68,14 @@ namespace NSimpleBus.Configuration
             }
         }
 
-        public void RegisterSubscribers(Assembly assembly, string nameSpace = null, Func<Type, ISubscriber> resolver = null)
+        public void RegisterSubscribers(Assembly assembly, string nameSpace = null,
+                                        Func<Type, ISubscriber> resolver = null)
         {
-            RegisterSubscribers(new[] { assembly }, nameSpace != null ? new[] { nameSpace } : null, resolver);
+            RegisterSubscribers(new[] {assembly}, nameSpace != null ? new[] {nameSpace} : null, resolver);
         }
 
-        public void RegisterSubscribers(Assembly[] assemblies, string[] nameSpaces = null, Func<Type, ISubscriber> resolver = null)
+        public void RegisterSubscribers(Assembly[] assemblies, string[] nameSpaces = null,
+                                        Func<Type, ISubscriber> resolver = null)
         {
             if (assemblies == null)
             {
@@ -74,17 +84,19 @@ namespace NSimpleBus.Configuration
 
             try
             {
-                foreach (var type in assemblies.SelectMany(a => a.GetTypes())
+                foreach (Type type in assemblies.SelectMany(a => a.GetTypes())
                     .Where(
                         t =>
                         (nameSpaces == null || nameSpaces.Contains(t.Namespace)) &&
-                        t.GetInterfaces().Contains(typeof(ISubscriber))))
+                        t.GetInterfaces().Contains(typeof (ISubscriber))))
                 {
                     Type consumerType = type;
                     Func<Type, ISubscriber> r = resolver;
-                    RegisterConsumer(
-                        () => r != null ? r(consumerType) :
-                            (ISubscriber)Activator.CreateInstance(consumerType), (t, c) => new RegisteredSubscriber(t, c));
+                    this.RegisterConsumer(
+                        () => r != null
+                                  ? r(consumerType)
+                                  : (ISubscriber) Activator.CreateInstance(consumerType),
+                        (t, c) => new RegisteredSubscriber(t, c));
                 }
             }
             catch (Exception ex)
@@ -96,15 +108,18 @@ namespace NSimpleBus.Configuration
 
         public void RegisterSubscriber(Func<ISubscriber> subscriberDelegate)
         {
-            RegisterConsumer(subscriberDelegate, (t, c) => new RegisteredSubscriber(t, c));
+            this.RegisterConsumer(subscriberDelegate, (t, c) => new RegisteredSubscriber(t, c));
         }
 
         public void RegisterConsumer(Func<IConsumer> consumerDelegate)
         {
-            RegisterConsumer(consumerDelegate, (t, c) => new RegisteredConsumer(t, c));
+            this.RegisterConsumer(consumerDelegate, (t, c) => new RegisteredConsumer(t, c));
         }
 
-        private void RegisterConsumer<T>(Func<T> consumerDelegate, Func<Type, Func<T>, IRegisteredConsumer> newConsumer) where T : class
+        #endregion
+
+        private void RegisterConsumer<T>(Func<T> consumerDelegate, Func<Type, Func<T>, IRegisteredConsumer> newConsumer)
+            where T : class
         {
             if (consumerDelegate == null)
             {
@@ -120,7 +135,8 @@ namespace NSimpleBus.Configuration
             catch (Exception ex)
             {
                 throw new TargetInvocationException(
-                    string.Format("An exception was thrown when invoking the consumer delegate '{0}.", consumerDelegate.GetType().GetGenericArguments()[0].FullName), ex);
+                    string.Format("An exception was thrown when invoking the consumer delegate '{0}.",
+                                  consumerDelegate.GetType().GetGenericArguments()[0].FullName), ex);
             }
 
             if (consumer == null)
@@ -137,87 +153,106 @@ namespace NSimpleBus.Configuration
                     continue;
                 }
 
-                var gargs = iface.GetGenericArguments();
+                Type[] gargs = iface.GetGenericArguments();
 
                 if (gargs.Length > 0)
                 {
                     Type messageType = iface.GetGenericArguments()[0];
 
-                    if (!RegisteredConsumers.ContainsKey(messageType))
+                    if (!this.RegisteredConsumers.ContainsKey(messageType))
                     {
-                        RegisteredConsumers.Add(messageType, new List<IRegisteredConsumer>());
+                        this.RegisteredConsumers.Add(messageType, new List<IRegisteredConsumer>());
                     }
 
-                    RegisteredConsumers[messageType].Add(newConsumer(messageType, consumerDelegate));
+                    this.RegisteredConsumers[messageType].Add(newConsumer(messageType, consumerDelegate));
 
-                    Log.InfoFormat("Registered {0} as {1} for message type {2}.", consumer.GetType().FullName, typeof(T).Name, messageType.FullName);
+                    Log.InfoFormat("Registered {0} as {1} for message type {2}.", consumer.GetType().FullName,
+                                   typeof (T).Name, messageType.FullName);
                 }
             }
 
-            if (RegisteredConsumers.Count == 0)
+            if (this.RegisteredConsumers.Count == 0)
             {
                 throw new ArgumentException("Unable to find any messages to consume.", "consumer");
             }
         }
 
+        #region Nested type: RegisteredConsumer
+
         public class RegisteredConsumer : IRegisteredConsumer
         {
             public RegisteredConsumer(Type messageType, Func<IConsumer> consumer)
             {
-                MessageType = messageType;
-                Queue = messageType.FullName;
-                Consumer = consumer;
-                ConsumeMethods = new List<MethodInfo>();
+                this.MessageType = messageType;
+                this.Queue = messageType.FullName;
+                this.Consumer = consumer;
+                this.ConsumeMethods = new List<MethodInfo>();
 
-                var interfaces = consumer.Invoke().GetType().GetInterfaces();
-                foreach (var iface in interfaces.Where(i => i.GetInterfaces().Contains(typeof(IConsumer))))
+                Type[] interfaces = consumer.Invoke().GetType().GetInterfaces();
+                foreach (Type iface in interfaces.Where(i => i.GetInterfaces().Contains(typeof (IConsumer))))
                 {
-                    ConsumeMethods.Add(iface.GetMethod("Consume", new[] { messageType }));
+                    this.ConsumeMethods.Add(iface.GetMethod("Consume", new[] {messageType}));
                 }
             }
 
-            public Type MessageType { get; protected set; }
             public Func<IConsumer> Consumer { get; protected set; }
             public IList<MethodInfo> ConsumeMethods { get; protected set; }
+
+            #region IRegisteredConsumer Members
+
+            public Type MessageType { get; protected set; }
             public string Queue { get; protected set; }
 
             public void Invoke(object message)
             {
-                foreach (var method in ConsumeMethods)
+                foreach (MethodInfo method in this.ConsumeMethods)
                 {
-                    method.Invoke(Consumer.Invoke(), new[] { message });   
+                    method.Invoke(this.Consumer.Invoke(), new[] {message});
                 }
             }
+
+            #endregion
         }
+
+        #endregion
+
+        #region Nested type: RegisteredSubscriber
 
         public class RegisteredSubscriber : IRegisteredConsumer
         {
             public RegisteredSubscriber(Type messageType, Func<ISubscriber> subscriber)
             {
-                MessageType = messageType;
-                Subscriber = subscriber;
-                Queue = string.Format("{0}.{1}", messageType.FullName, Guid.NewGuid().ToString("n"));
-                ConsumeMethods = new List<MethodInfo>();
+                this.MessageType = messageType;
+                this.Subscriber = subscriber;
+                this.Queue = string.Format("{0}.{1}", messageType.FullName, Guid.NewGuid().ToString("n"));
+                this.ConsumeMethods = new List<MethodInfo>();
 
-                var interfaces = subscriber.Invoke().GetType().GetInterfaces();
-                foreach (var iface in interfaces.Where(i => i.GetInterfaces().Contains(typeof(ISubscriber))))
+                Type[] interfaces = subscriber.Invoke().GetType().GetInterfaces();
+                foreach (Type iface in interfaces.Where(i => i.GetInterfaces().Contains(typeof (ISubscriber))))
                 {
-                    ConsumeMethods.Add(iface.GetMethod("Consume", new[] { messageType }));
+                    this.ConsumeMethods.Add(iface.GetMethod("Consume", new[] {messageType}));
                 }
             }
 
-            public Type MessageType { get; protected set; }
             public Func<ISubscriber> Subscriber { get; protected set; }
             public IList<MethodInfo> ConsumeMethods { get; protected set; }
+
+            #region IRegisteredConsumer Members
+
+            public Type MessageType { get; protected set; }
             public string Queue { get; protected set; }
 
             public void Invoke(object message)
             {
-                foreach (var method in ConsumeMethods)
+                foreach (MethodInfo method in this.ConsumeMethods)
                 {
-                    method.Invoke(Subscriber.Invoke(), new[] { message });
+                    method.Invoke(this.Subscriber.Invoke(), new[] {message});
                 }
             }
+
+            #endregion
         }
+
+        #endregion
     }
 }

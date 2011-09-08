@@ -4,5 +4,6 @@ namespace NSimpleBus.Transports
     {
         T Message { get; }
         string MessageType { get; }
+        string UserName { get; }
     }
 }

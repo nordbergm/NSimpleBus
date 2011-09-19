@@ -1,9 +1,7 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build" InitialTargets="_Initialize">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
   <UsingTask AssemblyFile="$(MSBuildExtensionsPath)\Xunit\xunit.runner.msbuild.dll" TaskName="Xunit.Runner.MSBuild.xunit"/>
   <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets"/>
-  <Import Project="..\wraps\openwrap\build\OpenWrap.tasks"/>
   <PropertyGroup>
-    <OpenWrap-BuildTasksDirectory>$(MSBuildProjectDirectory)\..\wraps\openwrap\build</OpenWrap-BuildTasksDirectory>
     <SrcDir>$(MSBuildProjectDirectory)\..\src</SrcDir>
   </PropertyGroup>
   
@@ -18,18 +16,6 @@
     <Version Condition="$(BUILD_NUMBER) == ''">1.0.0.0</Version>
   </PropertyGroup>
 
-  <Target Name="_Initialize">
-    <!-- Initializes the environment and remote repositories -->
-    <InitializeOpenWrap CurrentDirectory="$(MSBuildProjectDirectory)\..">
-      <Output TaskParameter="Name" PropertyName="OpenWrap-PackageName" />
-    </InitializeOpenWrap>
-  </Target>
-  
-  <Target Name="BuildWrap" DependsOnTargets="_Initialize">
-    <!-- Builds the package -->
-    <RunCommand Verb="build" Noun="wrap" />
-  </Target>
-  
   <Target Name="Compile">
     <AssemblyInfo CodeLanguage="CS"
         OutputFile="$(SrcDir)\AssemblyInfo.cs"
@@ -57,18 +43,7 @@
 
     <xunit Assemblies="@(OutputFiles)" />
   </Target>
-  
-  <Target Name="PublishWrap" DependsOnTargets="BuildWrap">
-    <PropertyGroup>
-      <PublishCommandArguments>
-        <Name>NSimpleBus</Name>
-        <Remote>file://build/packages</Remote>
-      </PublishCommandArguments>
-    </PropertyGroup>
 
-    <RunCommand Noun="wrap" Verb="publish" Args="$(PublishCommandArguments)" />
-  </Target>
-  
   <Target Name="NuGetPackage" DependsOnTargets="Compile">
     <ItemGroup>
       <MainBinaries Include="$(SrcDir)\**\bin\$(Configuration)\**\*.*" />

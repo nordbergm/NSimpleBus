@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace NSimpleBus.Serialization
 {
@@ -7,17 +8,24 @@ namespace NSimpleBus.Serialization
     {
         public Stream Serialize(object o)
         {
-            Stream s = new MemoryStream();
-            ServiceStack.Text.JsonSerializer.SerializeToStream(o, s);
+            var ms = new MemoryStream();
+            var writer = new JsonTextWriter(new StreamWriter(ms));
+            var serializer = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings());
 
-            s.Seek(0, SeekOrigin.Begin);
+            serializer.Serialize(writer, o);
+            writer.Flush();
 
-            return s;
+            ms.Seek(0, SeekOrigin.Begin);
+
+            return ms;
         }
 
         public object Deserialize(Stream s, Type asType)
         {
-            return ServiceStack.Text.JsonSerializer.DeserializeFromStream(asType, s);
+            var reader = new JsonTextReader(new StreamReader(s));
+            var serializer = Newtonsoft.Json.JsonSerializer.Create(new JsonSerializerSettings());
+            
+            return serializer.Deserialize(reader, asType);
         }
     }
 }

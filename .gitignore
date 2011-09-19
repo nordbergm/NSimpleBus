@@ -31,3 +31,5 @@ wraps/_cache/*
 /*.wrap
 build/tmp/*
 !build/NuGet.exe
+!packages
+!packages/*

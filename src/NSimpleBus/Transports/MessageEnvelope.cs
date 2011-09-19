@@ -17,9 +17,9 @@ namespace NSimpleBus.Transports
 
         #region IMessageEnvelope<T> Members
 
-        public string UserName { get; private set; }
-        public T Message { get; private set; }
-        public string MessageType { get; private set; }
+        public string UserName { get; set; }
+        public T Message { get; set; }
+        public string MessageType { get; set; }
 
         #endregion
     }

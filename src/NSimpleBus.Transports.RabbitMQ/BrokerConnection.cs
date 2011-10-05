@@ -48,7 +48,7 @@ namespace NSimpleBus.Transports.RabbitMQ
             if (this._configuration.AutoConfigure != AutoConfigureMode.None)
             {
                 this.AutoConfigureQueue(
-                    internalRegisteredConsumer.Queue,
+                    internalRegisteredConsumer,
                     this._configuration,
                     registeredConsumer.MessageType,
                     this._model);
@@ -141,7 +141,7 @@ namespace NSimpleBus.Transports.RabbitMQ
             }
         }
 
-        private void AutoConfigureQueue(string queue, IBrokerConfiguration config, Type messageType, IModel m)
+        private void AutoConfigureQueue(IRegisteredConsumer consumer, IBrokerConfiguration config, Type messageType, IModel m)
         {
             lock (m)
             {
@@ -149,21 +149,21 @@ namespace NSimpleBus.Transports.RabbitMQ
                 switch (config.AutoConfigure)
                 {
                     case AutoConfigureMode.PublishSubscribe:
-                        m.QueueDeclare(queue, true, true, true, null);
-                        Log.InfoFormat("Queue '{0}' has been auto-configured as exclusive and auto-delete.", queue);
+                        m.QueueDeclare(consumer.Queue, true, true, consumer.AutoDeleteQueue, null);
+                        Log.InfoFormat("Queue '{0}' has been auto-configured as exclusive and auto-delete.", consumer.Queue);
                         break;
 
                     case AutoConfigureMode.CompetingConsumer:
-                        m.QueueDeclare(queue, true, false, false, null);
-                        Log.InfoFormat("Queue '{0}' has been auto-configured as non exclusive and persistent.", queue);
+                        m.QueueDeclare(consumer.Queue, true, false, false, null);
+                        Log.InfoFormat("Queue '{0}' has been auto-configured as non exclusive and persistent.", consumer.Queue);
                         break;
 
                     default:
                         throw new NotSupportedException("The specified auto configuration mode is not supported.");
                 }
 
-                m.QueueBind(queue, config.InternalExchange(messageType), messageType.ToRoutingKey());
-                Log.InfoFormat("Queue '{0}' has been bound to exchange '{1}'.", queue, config.InternalExchange(messageType));
+                m.QueueBind(consumer.Queue, config.InternalExchange(messageType), messageType.ToRoutingKey());
+                Log.InfoFormat("Queue '{0}' has been bound to exchange '{1}'.", consumer.Queue, config.InternalExchange(messageType));
             }
         }
     }

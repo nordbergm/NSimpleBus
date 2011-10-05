@@ -19,6 +19,11 @@ namespace NSimpleBus.Transports.RabbitMQ.Configuration
 
         public string Queue { get; private set; }
 
+        public bool AutoDeleteQueue
+        {
+            get { return this.Other.AutoDeleteQueue; }
+        }
+
         public Type MessageType
         {
             get { return this.Other.MessageType; }

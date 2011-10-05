@@ -144,6 +144,35 @@ namespace NSimpleBus.Tests
                 Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
                 Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
                 Assert.Contains(typeof(TestMessage).FullName, addedSubscriber.Queue);
+                Assert.True(addedSubscriber.AutoDeleteQueue);
+
+                addedSubscriber.Invoke(message);
+            }
+        }
+
+        [Fact]
+        public void SubscriberNotAutoDeleteWhenQueueNameResolverDefined()
+        {
+            var mockRepository = new MockRepository();
+            var subscriber = mockRepository.StrictMock<Subscribes<TestMessage>.All>();
+            var message = new TestMessage();
+
+            using (mockRepository.Record())
+            {
+                Expect.Call(() => subscriber.Consume(message));
+            }
+
+            using (mockRepository.Playback())
+            {
+                BrokerConfiguration config = new BrokerConfiguration();
+                config.ResolveQueueName = (t, c) => "myqueue";
+                config.RegisterSubscriber(() => subscriber);
+
+                Assert.Equal(1, config.RegisteredConsumers.Count);
+
+                var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)][0];
+                Assert.False(addedSubscriber.AutoDeleteQueue);
+                Assert.Equal("myqueue", addedSubscriber.Queue);
 
                 addedSubscriber.Invoke(message);
             }

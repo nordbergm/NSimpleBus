@@ -1,4 +1,5 @@
-﻿using NSimpleBus.Serialization;
+﻿using System;
+using NSimpleBus.Serialization;
 
 namespace NSimpleBus.Configuration
 {
@@ -38,6 +39,19 @@ namespace NSimpleBus.Configuration
         public static void PublishSubscribe(this IBrokerConfiguration config)
         {
             config.AutoConfigure = AutoConfigureMode.PublishSubscribe;
+        }
+
+        public static void UseMachineNameInSubscription(this IBrokerConfiguration config)
+        {
+            config.ResolveQueueName = (t, c) =>
+                                      {
+                                          if (c == typeof (ISubscriber))
+                                          {
+                                              return string.Format("{0}.{1}", t.FullName, Environment.MachineName);
+                                          }
+
+                                          return t.FullName;
+                                      };
         }
     }
 }

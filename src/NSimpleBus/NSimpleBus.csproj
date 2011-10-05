@@ -53,7 +53,8 @@
     <Compile Include="Configuration\BrokerConfigurationExtensions.cs" />
     <Compile Include="Configuration\IBrokerConfiguration.cs" />
     <Compile Include="Configuration\IRegisteredConsumer.cs" />
-    <Compile Include="CreatePrincipalDelegate.cs" />
+    <Compile Include="Configuration\CreatePrincipalDelegate.cs" />
+    <Compile Include="Configuration\ResolveQueueNameDelegate.cs" />
     <Compile Include="IBus.cs" />
     <Compile Include="ISubscriber.cs" />
     <Compile Include="Subscribes.cs" />

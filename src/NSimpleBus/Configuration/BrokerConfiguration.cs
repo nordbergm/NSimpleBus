@@ -27,6 +27,7 @@ namespace NSimpleBus.Configuration
         public string HostName { get; set; }
         public int Port { get; set; }
         public CreatePrincipalDelegate CreatePrincipal { get; set; }
+        public ResolveQueueNameDelegate ResolveQueueName { get; set; }
         public ISerializer Serializer { get; set; }
         public string Exchange { get; set; }
         public string VirtualHost { get; set; }
@@ -58,7 +59,7 @@ namespace NSimpleBus.Configuration
                     this.RegisterConsumer(() => r != null
                                                     ? r(consumerType)
                                                     : (IConsumer) Activator.CreateInstance(consumerType),
-                                          (t, c) => new RegisteredConsumer(t, c));
+                                          (t, c) => new RegisteredConsumer(t, c, this.ResolveQueueName));
                 }
             }
             catch (Exception ex)
@@ -96,7 +97,7 @@ namespace NSimpleBus.Configuration
                         () => r != null
                                   ? r(consumerType)
                                   : (ISubscriber) Activator.CreateInstance(consumerType),
-                        (t, c) => new RegisteredSubscriber(t, c));
+                        (t, c) => new RegisteredSubscriber(t, c, this.ResolveQueueName));
                 }
             }
             catch (Exception ex)
@@ -108,12 +109,12 @@ namespace NSimpleBus.Configuration
 
         public void RegisterSubscriber(Func<ISubscriber> subscriberDelegate)
         {
-            this.RegisterConsumer(subscriberDelegate, (t, c) => new RegisteredSubscriber(t, c));
+            this.RegisterConsumer(subscriberDelegate, (t, c) => new RegisteredSubscriber(t, c, this.ResolveQueueName));
         }
 
         public void RegisterConsumer(Func<IConsumer> consumerDelegate)
         {
-            this.RegisterConsumer(consumerDelegate, (t, c) => new RegisteredConsumer(t, c));
+            this.RegisterConsumer(consumerDelegate, (t, c) => new RegisteredConsumer(t, c, this.ResolveQueueName));
         }
 
         #endregion
@@ -181,11 +182,14 @@ namespace NSimpleBus.Configuration
 
         public class RegisteredConsumer : IRegisteredConsumer
         {
-            public RegisteredConsumer(Type messageType, Func<IConsumer> consumer)
+            public RegisteredConsumer(Type messageType, Func<IConsumer> consumer, ResolveQueueNameDelegate queueNameResolver)
             {
                 this.MessageType = messageType;
-                this.Queue = messageType.FullName;
+                this.Queue = queueNameResolver != null ? 
+                                queueNameResolver(messageType, typeof(IConsumer)) : 
+                                messageType.FullName;
                 this.Consumer = consumer;
+                this.AutoDeleteQueue = false;
                 this.ConsumeMethods = new List<MethodInfo>();
 
                 Type[] interfaces = consumer.Invoke().GetType().GetInterfaces();
@@ -202,6 +206,7 @@ namespace NSimpleBus.Configuration
 
             public Type MessageType { get; protected set; }
             public string Queue { get; protected set; }
+            public bool AutoDeleteQueue { get; private set; }
 
             public void Invoke(object message)
             {
@@ -220,11 +225,14 @@ namespace NSimpleBus.Configuration
 
         public class RegisteredSubscriber : IRegisteredConsumer
         {
-            public RegisteredSubscriber(Type messageType, Func<ISubscriber> subscriber)
+            public RegisteredSubscriber(Type messageType, Func<ISubscriber> subscriber, ResolveQueueNameDelegate queueNameResolver)
             {
                 this.MessageType = messageType;
                 this.Subscriber = subscriber;
-                this.Queue = string.Format("{0}.{1}", messageType.FullName, Guid.NewGuid().ToString("n"));
+                this.Queue = queueNameResolver != null ? 
+                                queueNameResolver(messageType, typeof(ISubscriber)) : 
+                                string.Format("{0}.{1}", messageType.FullName, Guid.NewGuid().ToString("n"));
+                this.AutoDeleteQueue = queueNameResolver == null;
                 this.ConsumeMethods = new List<MethodInfo>();
 
                 Type[] interfaces = subscriber.Invoke().GetType().GetInterfaces();
@@ -241,6 +249,7 @@ namespace NSimpleBus.Configuration
 
             public Type MessageType { get; protected set; }
             public string Queue { get; protected set; }
+            public bool AutoDeleteQueue { get; private set; }
 
             public void Invoke(object message)
             {

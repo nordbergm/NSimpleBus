@@ -6,6 +6,7 @@ namespace NSimpleBus.Configuration
     {
         Type MessageType { get; }
         string Queue { get; }
+        bool AutoDeleteQueue { get; }
         void Invoke(object message);
     }
 }

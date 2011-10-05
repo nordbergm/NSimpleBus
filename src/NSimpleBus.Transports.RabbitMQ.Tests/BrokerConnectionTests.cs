@@ -121,6 +121,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             {
                 SetupResult.For(consumer.Queue).Return("q");
                 SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
+                SetupResult.For(consumer.AutoDeleteQueue).Return(true);
 
                 SetupResult.For(rabbitConn.CreateModel()).Return(rabbitModel);
                 SetupResult.For(config.Exchange).Return("ex");

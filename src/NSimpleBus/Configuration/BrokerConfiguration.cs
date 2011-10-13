@@ -192,10 +192,19 @@ namespace NSimpleBus.Configuration
                 this.AutoDeleteQueue = false;
                 this.ConsumeMethods = new List<MethodInfo>();
 
-                Type[] interfaces = consumer.Invoke().GetType().GetInterfaces();
+                Type consumerType = consumer.Invoke().GetType();
+                Type[] interfaces = consumerType.GetInterfaces();
                 foreach (Type iface in interfaces.Where(i => i.GetInterfaces().Contains(typeof (IConsumer))))
                 {
-                    this.ConsumeMethods.Add(iface.GetMethod("Consume", new[] {messageType}));
+                    var method = iface.GetMethod("Consume", new[] {messageType}) ??
+                                 consumerType.GetMethod("Consume", new[] {messageType});
+
+                    if (method == null)
+                    {
+                        throw new MissingMethodException(consumerType.Name, "Consume");
+                    }
+
+                    this.ConsumeMethods.Add(method);
                 }
             }
 
@@ -235,10 +244,19 @@ namespace NSimpleBus.Configuration
                 this.AutoDeleteQueue = queueNameResolver == null;
                 this.ConsumeMethods = new List<MethodInfo>();
 
-                Type[] interfaces = subscriber.Invoke().GetType().GetInterfaces();
+                Type subscriberType = subscriber.Invoke().GetType();
+                Type[] interfaces = subscriberType.GetInterfaces();
                 foreach (Type iface in interfaces.Where(i => i.GetInterfaces().Contains(typeof (ISubscriber))))
                 {
-                    this.ConsumeMethods.Add(iface.GetMethod("Consume", new[] {messageType}));
+                    var method = iface.GetMethod("Consume", new[] { messageType }) ??
+                                 subscriberType.GetMethod("Consume", new[] { messageType });
+
+                    if (method == null)
+                    {
+                        throw new MissingMethodException(subscriberType.Name, "Consume");
+                    }
+
+                    this.ConsumeMethods.Add(method);
                 }
             }
 

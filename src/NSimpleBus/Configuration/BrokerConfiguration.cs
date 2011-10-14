@@ -51,8 +51,10 @@ namespace NSimpleBus.Configuration
             try
             {
                 foreach (Type type in assemblies.SelectMany(a => a.GetTypes())
-                    .Where(t => (nameSpaces == null || nameSpaces.Contains(t.Namespace)) &&
-                                t.GetInterfaces().Contains(typeof (IConsumer))))
+                    .Where(t =>
+                        t.IsClass && !t.IsAbstract &&
+                        (nameSpaces == null || nameSpaces.Contains(t.Namespace)) &&
+                        t.GetInterfaces().Contains(typeof (IConsumer))))
                 {
                     Type consumerType = type;
                     Func<Type, IConsumer> r = resolver;
@@ -88,6 +90,7 @@ namespace NSimpleBus.Configuration
                 foreach (Type type in assemblies.SelectMany(a => a.GetTypes())
                     .Where(
                         t =>
+                        t.IsClass && !t.IsAbstract &&
                         (nameSpaces == null || nameSpaces.Contains(t.Namespace)) &&
                         t.GetInterfaces().Contains(typeof (ISubscriber))))
                 {

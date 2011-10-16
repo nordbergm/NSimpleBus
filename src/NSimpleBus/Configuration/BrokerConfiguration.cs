@@ -61,7 +61,7 @@ namespace NSimpleBus.Configuration
                     this.RegisterConsumer(() => r != null
                                                     ? r(consumerType)
                                                     : (IConsumer) Activator.CreateInstance(consumerType),
-                                          (t, c) => new RegisteredConsumer(t, c, this.ResolveQueueName));
+                                          (t, ct, c) => new RegisteredConsumer(t, ct, c, this.ResolveQueueName));
                 }
             }
             catch (Exception ex)
@@ -100,7 +100,7 @@ namespace NSimpleBus.Configuration
                         () => r != null
                                   ? r(consumerType)
                                   : (ISubscriber) Activator.CreateInstance(consumerType),
-                        (t, c) => new RegisteredSubscriber(t, c, this.ResolveQueueName));
+                        (t, ct, c) => new RegisteredSubscriber(t, ct, c, this.ResolveQueueName));
                 }
             }
             catch (Exception ex)
@@ -112,17 +112,17 @@ namespace NSimpleBus.Configuration
 
         public void RegisterSubscriber(Func<ISubscriber> subscriberDelegate)
         {
-            this.RegisterConsumer(subscriberDelegate, (t, c) => new RegisteredSubscriber(t, c, this.ResolveQueueName));
+            this.RegisterConsumer(subscriberDelegate, (t, ct, c) => new RegisteredSubscriber(t, ct, c, this.ResolveQueueName));
         }
 
         public void RegisterConsumer(Func<IConsumer> consumerDelegate)
         {
-            this.RegisterConsumer(consumerDelegate, (t, c) => new RegisteredConsumer(t, c, this.ResolveQueueName));
+            this.RegisterConsumer(consumerDelegate, (t, ct, c) => new RegisteredConsumer(t, ct, c, this.ResolveQueueName));
         }
 
         #endregion
 
-        private void RegisterConsumer<T>(Func<T> consumerDelegate, Func<Type, Func<T>, IRegisteredConsumer> newConsumer)
+        private void RegisterConsumer<T>(Func<T> consumerDelegate, Func<Type, Type, Func<T>, IRegisteredConsumer> newConsumer)
             where T : class
         {
             if (consumerDelegate == null)
@@ -168,7 +168,7 @@ namespace NSimpleBus.Configuration
                         this.RegisteredConsumers.Add(messageType, new List<IRegisteredConsumer>());
                     }
 
-                    this.RegisteredConsumers[messageType].Add(newConsumer(messageType, consumerDelegate));
+                    this.RegisteredConsumers[messageType].Add(newConsumer(messageType, iface, consumerDelegate));
 
                     Log.InfoFormat("Registered {0} as {1} for message type {2}.", consumer.GetType().FullName,
                                    typeof (T).Name, messageType.FullName);
@@ -185,7 +185,7 @@ namespace NSimpleBus.Configuration
 
         public class RegisteredConsumer : IRegisteredConsumer
         {
-            public RegisteredConsumer(Type messageType, Func<IConsumer> consumer, ResolveQueueNameDelegate queueNameResolver)
+            public RegisteredConsumer(Type messageType, Type consumerType, Func<object> consumer, ResolveQueueNameDelegate queueNameResolver)
             {
                 this.MessageType = messageType;
                 this.Queue = queueNameResolver != null ? 
@@ -193,39 +193,26 @@ namespace NSimpleBus.Configuration
                                 messageType.FullName;
                 this.Consumer = consumer;
                 this.AutoDeleteQueue = false;
-                this.ConsumeMethods = new List<MethodInfo>();
 
-                Type consumerType = consumer.Invoke().GetType();
-                Type[] interfaces = consumerType.GetInterfaces();
-                foreach (Type iface in interfaces.Where(i => i.GetInterfaces().Contains(typeof (IConsumer))))
+                this.ConsumeMethod = consumerType.GetMethod("Consume", new[] {messageType});
+                if (this.ConsumeMethod == null)
                 {
-                    var method = iface.GetMethod("Consume", new[] {messageType}) ??
-                                 consumerType.GetMethod("Consume", new[] {messageType});
-
-                    if (method == null)
-                    {
-                        throw new MissingMethodException(consumerType.Name, "Consume");
-                    }
-
-                    this.ConsumeMethods.Add(method);
+                    throw new MissingMethodException(consumerType.Name, "Consume");
                 }
             }
 
-            public Func<IConsumer> Consumer { get; protected set; }
-            public IList<MethodInfo> ConsumeMethods { get; protected set; }
+            public Func<object> Consumer { get; protected set; }
+            public MethodInfo ConsumeMethod { get; protected set; }
 
             #region IRegisteredConsumer Members
 
             public Type MessageType { get; protected set; }
             public string Queue { get; protected set; }
-            public bool AutoDeleteQueue { get; private set; }
+            public bool AutoDeleteQueue { get; protected set; }
 
             public void Invoke(object message)
             {
-                foreach (MethodInfo method in this.ConsumeMethods)
-                {
-                    method.Invoke(this.Consumer.Invoke(), new[] {message});
-                }
+                this.ConsumeMethod.Invoke(this.Consumer.Invoke(), new[] {message});
             }
 
             #endregion
@@ -235,52 +222,17 @@ namespace NSimpleBus.Configuration
 
         #region Nested type: RegisteredSubscriber
 
-        public class RegisteredSubscriber : IRegisteredConsumer
+        public class RegisteredSubscriber : RegisteredConsumer
         {
-            public RegisteredSubscriber(Type messageType, Func<ISubscriber> subscriber, ResolveQueueNameDelegate queueNameResolver)
+            public RegisteredSubscriber(Type messageType, Type consumerType, Func<object> consumer, ResolveQueueNameDelegate queueNameResolver) : 
+                base(messageType, consumerType, consumer, queueNameResolver)
             {
                 this.MessageType = messageType;
-                this.Subscriber = subscriber;
-                this.Queue = queueNameResolver != null ? 
-                                queueNameResolver(messageType, typeof(ISubscriber)) : 
+                this.Queue = queueNameResolver != null ?
+                                queueNameResolver(messageType, typeof(ISubscriber)) :
                                 string.Format("{0}.{1}", messageType.FullName, Guid.NewGuid().ToString("n"));
                 this.AutoDeleteQueue = queueNameResolver == null;
-                this.ConsumeMethods = new List<MethodInfo>();
-
-                Type subscriberType = subscriber.Invoke().GetType();
-                Type[] interfaces = subscriberType.GetInterfaces();
-                foreach (Type iface in interfaces.Where(i => i.GetInterfaces().Contains(typeof (ISubscriber))))
-                {
-                    var method = iface.GetMethod("Consume", new[] { messageType }) ??
-                                 subscriberType.GetMethod("Consume", new[] { messageType });
-
-                    if (method == null)
-                    {
-                        throw new MissingMethodException(subscriberType.Name, "Consume");
-                    }
-
-                    this.ConsumeMethods.Add(method);
-                }
             }
-
-            public Func<ISubscriber> Subscriber { get; protected set; }
-            public IList<MethodInfo> ConsumeMethods { get; protected set; }
-
-            #region IRegisteredConsumer Members
-
-            public Type MessageType { get; protected set; }
-            public string Queue { get; protected set; }
-            public bool AutoDeleteQueue { get; private set; }
-
-            public void Invoke(object message)
-            {
-                foreach (MethodInfo method in this.ConsumeMethods)
-                {
-                    method.Invoke(this.Subscriber.Invoke(), new[] {message});
-                }
-            }
-
-            #endregion
         }
 
         #endregion

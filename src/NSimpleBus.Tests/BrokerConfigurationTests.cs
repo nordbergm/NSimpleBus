@@ -169,7 +169,7 @@ namespace NSimpleBus.Tests
                 Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
                 Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
                 Assert.Equal(typeof(TestMessage).Name, addedSubscriber.Queue);
-                Assert.True(addedSubscriber.AutoDeleteQueue);
+                Assert.False(addedSubscriber.AutoDeleteQueue);
 
                 addedSubscriber.Invoke(message);
             }

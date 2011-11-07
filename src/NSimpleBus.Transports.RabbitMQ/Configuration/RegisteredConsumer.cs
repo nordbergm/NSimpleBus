@@ -48,7 +48,13 @@ namespace NSimpleBus.Transports.RabbitMQ.Configuration
 
         private static string ToInternalQueueName(string queue, Type consumerType, AutoConfigureMode autoConfigureMode)
         {
-            string iq = string.Format("{0}.{1}", consumerType.Name, queue);
+            string iq = string.Format("{0}.{1}", consumerType.FullName, queue);
+
+            // Max queue length is 255 characters in RabbitMQ
+            if (iq.Length > 255)
+            {
+                iq = iq.Remove(255);
+            }
 
             if (autoConfigureMode == AutoConfigureMode.None)
             {

@@ -24,7 +24,7 @@ namespace NSimpleBus.Configuration
         {
             if (config.AutoConfigure == AutoConfigureMode.PublishSubscribe)
             {
-                return string.Format("{0}.{1}", config.Exchange, messageType.Name);
+                return string.Format("{0}.{1}", config.Exchange, messageType.FullName);
             }
 
             return config.Exchange;

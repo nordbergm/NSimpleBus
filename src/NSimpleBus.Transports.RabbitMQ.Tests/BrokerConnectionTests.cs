@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using NSimpleBus.Serialization;
 using NSimpleBus.Tests;
+using NSimpleBus.Tests.Namespace1;
 using NSimpleBus.Transports.RabbitMQ.Serialization;
 using RabbitMQ.Client;
 using Xunit;
@@ -36,6 +37,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
 
                 SetupResult.For(consumer.Queue).Return("q");
                 SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
+                SetupResult.For(consumer.ConsumerType).Return(typeof(TestConsumer));
 
                 Expect.Call(() => rabbitModel.ExchangeDeclare(string.Concat("ex.", typeof(TestMessage).ToRoutingKey()), "fanout", true, false, null));
             }
@@ -67,6 +69,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
 
                 SetupResult.For(consumer.Queue).Return("q");
                 SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
+                SetupResult.For(consumer.ConsumerType).Return(typeof(TestConsumer));
                 
                 Expect.Call(() => rabbitModel.ExchangeDeclare("ex", "direct", true, false, null));
             }
@@ -121,13 +124,14 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             {
                 SetupResult.For(consumer.Queue).Return("q");
                 SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
+                SetupResult.For(consumer.ConsumerType).Return(typeof(TestConsumer));
                 SetupResult.For(consumer.AutoDeleteQueue).Return(true);
 
                 SetupResult.For(rabbitConn.CreateModel()).Return(rabbitModel);
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(config.AutoConfigure).Return(AutoConfigureMode.PublishSubscribe);
 
-                Expect.Call(rabbitModel.QueueDeclare("PublishSubscribe.q", true, true, true, null)).Return(new QueueDeclareOk("PublishSubscribe.q", 0, 0));
+                Expect.Call(rabbitModel.QueueDeclare("PublishSubscribe." + typeof(TestConsumer).FullName + ".q", true, true, true, null)).Return(new QueueDeclareOk("PublishSubscribe.q", 0, 0));
             }
 
             using (mockRepository.Playback())
@@ -152,12 +156,13 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             {
                 SetupResult.For(consumer.Queue).Return("q");
                 SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
+                SetupResult.For(consumer.ConsumerType).Return(typeof(TestConsumer));
 
                 SetupResult.For(rabbitConn.CreateModel()).Return(rabbitModel);
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(config.AutoConfigure).Return(AutoConfigureMode.CompetingConsumer);
 
-                Expect.Call(rabbitModel.QueueDeclare("CompetingConsumer.q", true, false, false, null)).Return(new QueueDeclareOk("CompetingConsumer.q", 0, 0));
+                Expect.Call(rabbitModel.QueueDeclare("CompetingConsumer." + typeof(TestConsumer).FullName + ".q", true, false, false, null)).Return(new QueueDeclareOk("CompetingConsumer.q", 0, 0));
             }
 
             using (mockRepository.Playback())
@@ -182,6 +187,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             {
                 SetupResult.For(consumer.Queue).Return("q");
                 SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
+                SetupResult.For(consumer.ConsumerType).Return(typeof(TestConsumer));
 
                 SetupResult.For(rabbitConn.CreateModel()).Return(rabbitModel);
                 SetupResult.For(config.Exchange).Return("ex");

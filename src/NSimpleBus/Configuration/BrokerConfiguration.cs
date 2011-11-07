@@ -18,7 +18,8 @@ namespace NSimpleBus.Configuration
             this.RegisteredConsumers = new Dictionary<Type, IList<IRegisteredConsumer>>();
             this.AutoConfigure = AutoConfigureMode.None;
             this.CreatePrincipal = n => new GenericPrincipal(new GenericIdentity(n), new string[0]);
-            this.HeartbeatInterval = TimeSpan.FromSeconds(10);
+            this.HeartbeatInterval = TimeSpan.FromSeconds(5);
+            this.ReQueueDelay = TimeSpan.FromSeconds(5);
         }
 
         #region IBrokerConfiguration Members
@@ -36,6 +37,7 @@ namespace NSimpleBus.Configuration
         public IDictionary<Type, IList<IRegisteredConsumer>> RegisteredConsumers { get; set; }
         public IBrokerConnectionFactory ConnectionFactory { get; set; }
         public TimeSpan HeartbeatInterval { get; set; }
+        public TimeSpan ReQueueDelay { get; set; }
 
         public void RegisterConsumers(Assembly assembly, string nameSpace = null, Func<Type, IConsumer> resolver = null)
         {
@@ -190,6 +192,7 @@ namespace NSimpleBus.Configuration
             public RegisteredConsumer(Type messageType, Type consumerType, Func<object> consumer, ResolveQueueNameDelegate queueNameResolver)
             {
                 this.MessageType = messageType;
+                this.ConsumerType = consumerType;
                 this.Queue = queueNameResolver != null ? 
                                 queueNameResolver(messageType, typeof(IConsumer)) : 
                                 messageType.FullName;
@@ -197,6 +200,8 @@ namespace NSimpleBus.Configuration
                 this.AutoDeleteQueue = false;
 
                 this.ConsumeMethod = consumerType.GetMethod("Consume", new[] {messageType});
+                this.AcceptMethod = consumerType.GetMethod("Accept", new[] { messageType });
+
                 if (this.ConsumeMethod == null)
                 {
                     throw new MissingMethodException(consumerType.Name, "Consume");
@@ -205,16 +210,31 @@ namespace NSimpleBus.Configuration
 
             public Func<object> Consumer { get; protected set; }
             public MethodInfo ConsumeMethod { get; protected set; }
+            public MethodInfo AcceptMethod { get; protected set; }
 
             #region IRegisteredConsumer Members
 
             public Type MessageType { get; protected set; }
+            public Type ConsumerType { get; protected set; }
             public string Queue { get; protected set; }
             public bool AutoDeleteQueue { get; protected set; }
 
             public void Invoke(object message)
             {
                 this.ConsumeMethod.Invoke(this.Consumer.Invoke(), new[] {message});
+            }
+
+            public Acceptance Accept(object message)
+            {
+                if (this.AcceptMethod == null)
+
+                {
+                    return Acceptance.Accept;
+                }
+                else
+                {
+                    return (Acceptance) this.AcceptMethod.Invoke(this.Consumer.Invoke(), new[] {message});
+                }       
             }
 
             #endregion

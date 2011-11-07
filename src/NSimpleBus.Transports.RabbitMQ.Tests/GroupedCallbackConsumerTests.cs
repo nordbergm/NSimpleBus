@@ -113,7 +113,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 callbackConsumer.ConsumeQueue(registeredConsumer);
 
                 Assert.Equal(1, callbackConsumer.QueueConsumers.Count);
-                Assert.Equal(1, callbackConsumer.QueueConsumers.Values.First().RegisteredConsumers.Count);
+                Assert.Equal(1, callbackConsumer.QueueConsumers.Values.Count);
                 Assert.Equal("token", callbackConsumer.QueueConsumers.Values.First().ConsumeToken.ConsumerTag);
 
                 callbackConsumer.Close();

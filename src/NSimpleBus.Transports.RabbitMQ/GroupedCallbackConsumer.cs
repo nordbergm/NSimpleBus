@@ -12,9 +12,14 @@ namespace NSimpleBus.Transports.RabbitMQ
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof (GroupedCallbackConsumer));
 
-        private readonly Thread _workerThread;
-        private readonly object _lockObject = new object();
+        private readonly Thread _consumerWorkerThread;
+        private readonly Thread _requeueWorkerThread;
+        private readonly object _consumerLockObject = new object();
+        private readonly object _requeueLockObject = new object();
+
         private readonly Queue<KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>> _deliveryQueue = 
+                                            new Queue<KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>>();
+        private readonly Queue<KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>> _requeueQueue =
                                             new Queue<KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>>();
 
         public GroupedCallbackConsumer(IModel model, IMessageSerializer serializer, IBrokerConfiguration config)
@@ -25,12 +30,19 @@ namespace NSimpleBus.Transports.RabbitMQ
             IsRunning = true;
             QueueConsumers = new Dictionary<string, QueueConsumer>();
 
-            this._workerThread = new Thread(StartBackgroundConsume)
+            this._consumerWorkerThread = new Thread(StartBackgroundConsume)
                                {
-                                   IsBackground = true, 
-                                   Name = "RabbitMQ Queue Consumer"
+                                   IsBackground = true,
+                                   Name = "RabbitMQ Consumer Queue"
                                };
-            this._workerThread.Start();
+            this._consumerWorkerThread.Start();
+
+            this._requeueWorkerThread = new Thread(StartBackgroundRequeue)
+                                {
+                                    IsBackground = true,
+                                    Name = "RabbitMQ Delayed Reject Queue"
+                                };
+            this._requeueWorkerThread.Start();
         }
 
         public bool IsRunning { get; private set; }
@@ -43,9 +55,9 @@ namespace NSimpleBus.Transports.RabbitMQ
         {
             while(IsRunning)
             {
-                lock (this._lockObject)
+                lock (this._consumerLockObject)
                 {
-                    Monitor.Wait(this._lockObject);
+                    Monitor.Wait(this._consumerLockObject);
                 }
 
                 while (this._deliveryQueue.Count > 0)
@@ -66,47 +78,102 @@ namespace NSimpleBus.Transports.RabbitMQ
             }
         }
 
-        private void CallbackWithMessage(QueueActivityConsumer sender, QueueActivityConsumer.DeliverEventArgs args)
+        private void StartBackgroundRequeue()
         {
-            bool handled = false;
-            
-            if (this.QueueConsumers.ContainsKey(args.Queue) &&
-                !this.QueueConsumers[args.Queue].ConsumeToken.IsClosed)
+            while (IsRunning)
             {
-                IMessageEnvelope<object> envelope = Serializer.DeserializeMessage(args);
-
-                if (!string.IsNullOrEmpty(envelope.UserName))
+                lock (this._requeueLockObject)
                 {
-                    Thread.CurrentPrincipal = Config.CreatePrincipal(envelope.UserName);
+                    Monitor.Wait(this._requeueLockObject);
                 }
 
-                foreach (var registeredConsumer in this.QueueConsumers[args.Queue].RegisteredConsumers)
+                Thread.Sleep(this.Config.ReQueueDelay);
+
+                while (this._requeueQueue.Count > 0)
                 {
+                    var args = this._requeueQueue.Dequeue();
+
                     try
                     {
-                        registeredConsumer.Invoke(envelope.Message);
-                        Log.InfoFormat("Successfully received and consumed message {0}.",
-                                       registeredConsumer.MessageType.FullName);
-
-
+                        args.Key.Model.BasicNack(args.Value.DeliveryTag, false, true);
                     }
                     catch (Exception ex)
                     {
                         Log.Error(
-                            string.Format("An exception was thrown while invoking the consumer."), ex);
+                            string.Format("An exception was thrown while trying to re-queue a message from queue {0}.",
+                                          args.Value.Queue), ex);
                     }
-
-                    handled = true;
                 }
             }
+        }
 
-            if(handled)
+        private void CallbackWithMessage(QueueActivityConsumer sender, QueueActivityConsumer.DeliverEventArgs args)
+        {
+            if (this.QueueConsumers.ContainsKey(args.Queue) &&
+                !this.QueueConsumers[args.Queue].ConsumeToken.IsClosed)
             {
-                sender.Model.BasicAck(args.DeliveryTag, false);
-            }
-            else
-            {
-                sender.Model.BasicNack(args.DeliveryTag, false, true);
+                var registeredConsumer = this.QueueConsumers[args.Queue].RegisteredConsumer;
+                var envelope = Serializer.DeserializeMessage(args);
+
+                try
+                {
+                    var acceptance = registeredConsumer.Accept(envelope.Message);
+
+                    if (acceptance == Acceptance.Accept)
+                    {
+                        if (!string.IsNullOrEmpty(envelope.UserName))
+                        {
+                            Thread.CurrentPrincipal = Config.CreatePrincipal(envelope.UserName);
+                        }
+
+                        registeredConsumer.Invoke(envelope.Message);
+
+                        sender.Model.BasicAck(args.DeliveryTag, false);
+
+                        Log.InfoFormat("Accepted message {0}.",
+                                       registeredConsumer.MessageType.FullName);
+                    }
+                    else if (acceptance == Acceptance.Requeue)
+                    {
+                        sender.Model.BasicNack(args.DeliveryTag, false, true);
+
+                        Log.InfoFormat("Re-queued message {0}.",
+                                       registeredConsumer.MessageType.FullName);
+                    }
+                    else if (acceptance == Acceptance.DelayedRequeue)
+                    {
+                        this._requeueQueue.Enqueue(
+                            new KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>(sender, args));
+
+                        lock (this._consumerLockObject)
+                        {
+                            Monitor.Pulse(this._requeueLockObject);
+                        }
+
+                        Log.InfoFormat("Re-queued message {0} with delay.",
+                                       registeredConsumer.MessageType.FullName);
+                    }
+                    else
+                    {
+                        sender.Model.BasicNack(args.DeliveryTag, false, false);
+
+                        Log.WarnFormat("Rejected message {0}.",
+                                       registeredConsumer.MessageType.FullName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this._requeueQueue.Enqueue(
+                        new KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>(sender, args));
+
+                    lock (this._consumerLockObject)
+                    {
+                        Monitor.Pulse(this._requeueLockObject);
+                    }
+
+                    Log.Error(
+                        string.Format("An exception was thrown while invoking the consumer."), ex);
+                }
             }
         }
 
@@ -126,7 +193,7 @@ namespace NSimpleBus.Transports.RabbitMQ
             }
             else
             {
-                QueueConsumers[registeredConsumer.Queue].RegisteredConsumers.Add(registeredConsumer);
+                throw new InvalidOperationException("A consumer cannot be registered to a queue twice.");
             }
         }
 
@@ -143,9 +210,9 @@ namespace NSimpleBus.Transports.RabbitMQ
             QueueActivityConsumer consumer = (QueueActivityConsumer) sender;
 
             this._deliveryQueue.Enqueue(new KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>(consumer, e));
-            lock (this._lockObject)
+            lock (this._consumerLockObject)
             {
-                Monitor.Pulse(this._lockObject);
+                Monitor.Pulse(this._consumerLockObject);
             }
         }
 
@@ -158,12 +225,12 @@ namespace NSimpleBus.Transports.RabbitMQ
 
             IsRunning = false;
 
-            lock (this._lockObject)
+            lock (this._consumerLockObject)
             {
-                Monitor.Pulse(this._lockObject);
+                Monitor.Pulse(this._consumerLockObject);
             }
 
-            this._workerThread.Join();
+            this._consumerWorkerThread.Join();
 
             foreach (var queueConsumer in QueueConsumers)
             {
@@ -190,11 +257,11 @@ namespace NSimpleBus.Transports.RabbitMQ
             {
                 Consumer = consumer;
                 ConsumeToken = consumeToken;
-                RegisteredConsumers = new List<IRegisteredConsumer> { registeredConsumer };
+                RegisteredConsumer = registeredConsumer;
             }
 
             public QueueActivityConsumer Consumer { get; private set; }
-            public IList<IRegisteredConsumer> RegisteredConsumers { get; set; }
+            public IRegisteredConsumer RegisteredConsumer { get; set; }
             public ConsumeToken ConsumeToken { get; private set; }
         }
     }

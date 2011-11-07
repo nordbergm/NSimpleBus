@@ -9,15 +9,20 @@ namespace NSimpleBus.Transports.RabbitMQ.Configuration
         {
             this.Other = other;
             this.AutoConfigureMode = autoConfigureMode;
-            this.Queue = ToInternalQueueName(this.Other.Queue, autoConfigureMode);
+            this.Queue = ToInternalQueueName(this.Other.Queue, this.Other.ConsumerType, autoConfigureMode);
         }
 
         public IRegisteredConsumer Other { get; private set; }
         public AutoConfigureMode AutoConfigureMode { get; private set; }
-
+        
         #region IRegisteredConsumer Members
 
         public string Queue { get; private set; }
+
+        public Type ConsumerType
+        {
+            get { return this.Other.ConsumerType; }
+        }
 
         public bool AutoDeleteQueue
         {
@@ -34,16 +39,23 @@ namespace NSimpleBus.Transports.RabbitMQ.Configuration
             this.Other.Invoke(message);
         }
 
+        public Acceptance Accept(object message)
+        {
+            return this.Other.Accept(message);
+        }
+
         #endregion
 
-        private static string ToInternalQueueName(string queue, AutoConfigureMode autoConfigureMode)
+        private static string ToInternalQueueName(string queue, Type consumerType, AutoConfigureMode autoConfigureMode)
         {
+            string iq = string.Format("{0}.{1}", consumerType.FullName, queue);
+
             if (autoConfigureMode == AutoConfigureMode.None)
             {
-                return queue;
+                return iq;
             }
 
-            return string.Format("{0}.{1}", autoConfigureMode, queue);
+            return string.Format("{0}.{1}", autoConfigureMode, iq);
         }
     }
 }

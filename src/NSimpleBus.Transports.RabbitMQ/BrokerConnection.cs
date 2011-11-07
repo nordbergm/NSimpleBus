@@ -149,7 +149,7 @@ namespace NSimpleBus.Transports.RabbitMQ
                 {
                     case AutoConfigureMode.PublishSubscribe:
                         m.QueueDeclare(consumer.Queue, true, false, consumer.AutoDeleteQueue, null);
-                        Log.InfoFormat("Queue '{0}' has been auto-configured as exclusive: {1} and auto-delete: {1}.", consumer.Queue, consumer.AutoDeleteQueue);
+                        Log.InfoFormat("Queue '{0}' has been auto-configured as non exclusive and auto-delete: {1}.", consumer.Queue, consumer.AutoDeleteQueue);
                         break;
 
                     case AutoConfigureMode.CompetingConsumer:

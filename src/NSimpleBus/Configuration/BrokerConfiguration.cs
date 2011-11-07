@@ -254,7 +254,6 @@ namespace NSimpleBus.Configuration
                 this.Queue = queueNameResolver != null ?
                                     queueNameResolver(messageType, typeof(ISubscriber)) :
                                     messageType.Name;
-                this.AutoDeleteQueue = queueNameResolver == null;
             }
         }
 

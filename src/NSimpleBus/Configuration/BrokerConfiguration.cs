@@ -18,6 +18,7 @@ namespace NSimpleBus.Configuration
             this.RegisteredConsumers = new Dictionary<Type, IList<IRegisteredConsumer>>();
             this.AutoConfigure = AutoConfigureMode.None;
             this.CreatePrincipal = n => new GenericPrincipal(new GenericIdentity(n), new string[0]);
+            this.HeartbeatInterval = TimeSpan.FromSeconds(10);
         }
 
         #region IBrokerConfiguration Members
@@ -34,6 +35,7 @@ namespace NSimpleBus.Configuration
         public AutoConfigureMode AutoConfigure { get; set; }
         public IDictionary<Type, IList<IRegisteredConsumer>> RegisteredConsumers { get; set; }
         public IBrokerConnectionFactory ConnectionFactory { get; set; }
+        public TimeSpan HeartbeatInterval { get; set; }
 
         public void RegisterConsumers(Assembly assembly, string nameSpace = null, Func<Type, IConsumer> resolver = null)
         {

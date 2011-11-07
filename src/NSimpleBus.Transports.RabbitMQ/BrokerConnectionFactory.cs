@@ -6,39 +6,40 @@ namespace NSimpleBus.Transports.RabbitMQ
 {
     public class BrokerConnectionFactory : IBrokerConnectionFactory
     {
-        private readonly IBrokerConfiguration configuration;
-        private ConnectionFactory factory;
+        private readonly IBrokerConfiguration _configuration;
+        private ConnectionFactory _factory;
 
         public BrokerConnectionFactory(IBrokerConfiguration configuration)
         {
-            this.configuration = configuration;
+            this._configuration = configuration;
         }
 
         public IBrokerConnection CreateConnection()
         {
-            if (factory == null)
+            if (this._factory == null)
             {
-                this.factory = new ConnectionFactory
+                this._factory = new ConnectionFactory
                 {
-                    UserName = configuration.UserName,
-                    Password = configuration.Password,
-                    VirtualHost = configuration.VirtualHost,
+                    UserName = this._configuration.UserName,
+                    Password = this._configuration.Password,
+                    VirtualHost = this._configuration.VirtualHost,
                     Protocol = Protocols.FromEnvironment(),
-                    HostName = configuration.HostName,
-                    Port = AmqpTcpEndpoint.UseDefaultPort
+                    HostName = this._configuration.HostName,
+                    Port = AmqpTcpEndpoint.UseDefaultPort,
+                    RequestedHeartbeat = (ushort)this._configuration.HeartbeatInterval.TotalSeconds
                 };
             }
 
-            IConnection connection = factory.CreateConnection();
+            IConnection connection = this._factory.CreateConnection();
             IModel model = connection.CreateModel();
-            IMessageSerializer serializer = new MessageSerializer(configuration.Serializer);
+            IMessageSerializer serializer = new MessageSerializer(this._configuration.Serializer);
 
             return new BrokerConnection(
                         connection, 
                         model, 
-                        configuration,
+                        this._configuration,
                         serializer, 
-                        new GroupedCallbackConsumer(model, serializer, configuration));
+                        new GroupedCallbackConsumer(model, serializer, this._configuration));
         }
     }
 }

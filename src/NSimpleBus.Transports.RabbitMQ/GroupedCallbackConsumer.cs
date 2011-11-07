@@ -12,9 +12,10 @@ namespace NSimpleBus.Transports.RabbitMQ
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof (GroupedCallbackConsumer));
 
-        private readonly Thread workerThread;
-        private readonly object lockObject = new object();
-        private readonly Queue<QueueActivityConsumer.DeliverEventArgs> deliveryQueue = new Queue<QueueActivityConsumer.DeliverEventArgs>();
+        private readonly Thread _workerThread;
+        private readonly object _lockObject = new object();
+        private readonly Queue<KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>> _deliveryQueue = 
+                                            new Queue<KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>>();
 
         public GroupedCallbackConsumer(IModel model, IMessageSerializer serializer, IBrokerConfiguration config)
         {
@@ -24,12 +25,12 @@ namespace NSimpleBus.Transports.RabbitMQ
             IsRunning = true;
             QueueConsumers = new Dictionary<string, QueueConsumer>();
 
-            workerThread = new Thread(StartBackgroundConsume)
+            this._workerThread = new Thread(StartBackgroundConsume)
                                {
                                    IsBackground = true, 
                                    Name = "RabbitMQ Queue Consumer"
                                };
-            workerThread.Start();
+            this._workerThread.Start();
         }
 
         public bool IsRunning { get; private set; }
@@ -42,30 +43,30 @@ namespace NSimpleBus.Transports.RabbitMQ
         {
             while(IsRunning)
             {
-                lock (lockObject)
+                lock (this._lockObject)
                 {
-                    Monitor.Wait(lockObject);
+                    Monitor.Wait(this._lockObject);
                 }
 
-                while (deliveryQueue.Count > 0)
+                while (this._deliveryQueue.Count > 0)
                 {
-                    var args = deliveryQueue.Dequeue();
+                    var args = this._deliveryQueue.Dequeue();
 
                     try
                     {
-                        this.CallbackWithMessage(args);
+                        this.CallbackWithMessage(args.Key, args.Value);
                     }
                     catch (Exception ex)
                     {
                         Log.Error(
                             string.Format("An exception was thrown while trying to consume a message from queue {0}.",
-                                          args.Queue), ex);
+                                          args.Value.Queue), ex);
                     }
                 }
             }
         }
 
-        private void CallbackWithMessage(QueueActivityConsumer.DeliverEventArgs args)
+        private void CallbackWithMessage(QueueActivityConsumer sender, QueueActivityConsumer.DeliverEventArgs args)
         {
             bool handled = false;
             
@@ -81,18 +82,31 @@ namespace NSimpleBus.Transports.RabbitMQ
 
                 foreach (var registeredConsumer in this.QueueConsumers[args.Queue].RegisteredConsumers)
                 {
-                    registeredConsumer.Invoke(envelope.Message);
-                    handled = true;
+                    try
+                    {
+                        registeredConsumer.Invoke(envelope.Message);
+                        Log.InfoFormat("Successfully received and consumed message {0}.",
+                                       registeredConsumer.MessageType.FullName);
 
-                    Log.InfoFormat("Successfully received and consumed message {0}.",
-                                   registeredConsumer.MessageType.FullName);
+
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(
+                            string.Format("An exception was thrown while invoking the consumer."), ex);
+                    }
+
+                    handled = true;
                 }
             }
 
-            if (!handled)
+            if(handled)
             {
-                Log.WarnFormat("Could not find a consumer for queue {0}, however the queue is being consumed.",
-                               args.Queue);
+                sender.Model.BasicAck(args.DeliveryTag, false);
+            }
+            else
+            {
+                sender.Model.BasicNack(args.DeliveryTag, false, true);
             }
         }
 
@@ -127,14 +141,12 @@ namespace NSimpleBus.Transports.RabbitMQ
         private void OnQueueDeliver(object sender, QueueActivityConsumer.DeliverEventArgs e)
         {
             QueueActivityConsumer consumer = (QueueActivityConsumer) sender;
-            
-            deliveryQueue.Enqueue(e);
-            lock (lockObject)
-            {
-                Monitor.Pulse(lockObject);
-            }
 
-            consumer.Model.BasicAck(e.DeliveryTag, false);
+            this._deliveryQueue.Enqueue(new KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>(consumer, e));
+            lock (this._lockObject)
+            {
+                Monitor.Pulse(this._lockObject);
+            }
         }
 
         public void Close()
@@ -146,12 +158,12 @@ namespace NSimpleBus.Transports.RabbitMQ
 
             IsRunning = false;
 
-            lock (this.lockObject)
+            lock (this._lockObject)
             {
-                Monitor.Pulse(this.lockObject);
+                Monitor.Pulse(this._lockObject);
             }
 
-            this.workerThread.Join();
+            this._workerThread.Join();
 
             foreach (var queueConsumer in QueueConsumers)
             {

@@ -20,6 +20,7 @@ namespace NSimpleBus.Configuration
         ISerializer Serializer { get; set; }
         IDictionary<Type, IList<IRegisteredConsumer>> RegisteredConsumers { get; set; }
         IBrokerConnectionFactory ConnectionFactory { get; set; }
+        TimeSpan HeartbeatInterval { get; set; }
         void RegisterConsumer(Func<IConsumer> consumer);
         void RegisterSubscriber(Func<ISubscriber> consumer);
         void RegisterConsumers(Assembly assembly, string nameSpace = null, Func<Type, IConsumer> resolver = null);

@@ -6,5 +6,11 @@
         {
             void Consume(T message);
         }
+
+        public interface Some : ISubscriber
+        {
+            Acceptance Accept(T message);
+            void Consume(T message);
+        }
     }
 }

@@ -48,7 +48,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Configuration
 
         private static string ToInternalQueueName(string queue, Type consumerType, AutoConfigureMode autoConfigureMode)
         {
-            string iq = string.Format("{0}.{1}", consumerType.FullName, queue);
+            string iq = string.Format("{0}.{1}", consumerType.Name, queue);
 
             if (autoConfigureMode == AutoConfigureMode.None)
             {

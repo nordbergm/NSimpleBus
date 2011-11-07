@@ -29,7 +29,7 @@ namespace NSimpleBus.Tests
             var addedConsumer = config.RegisteredConsumers[typeof(TestMessage)][0];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
             Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
-            Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
+            Assert.Equal(typeof(TestMessage).Name, addedConsumer.Queue);
 
             addedConsumer.Invoke(message);
         }
@@ -58,7 +58,7 @@ namespace NSimpleBus.Tests
                 var addedConsumer = config.RegisteredConsumers[typeof (TestMessage)][0];
                 Assert.IsType(typeof (BrokerConfiguration.RegisteredConsumer), addedConsumer);
                 Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
-                Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
+                Assert.Equal(typeof(TestMessage).Name, addedConsumer.Queue);
 
                 addedConsumer.Invoke(message);
             }
@@ -79,12 +79,12 @@ namespace NSimpleBus.Tests
             var addedConsumer = config.RegisteredConsumers[typeof(TestMessage)][0];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
             Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
-            Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
+            Assert.Equal(typeof(TestMessage).Name, addedConsumer.Queue);
 
             addedConsumer = config.RegisteredConsumers[typeof(TestMessage2)][0];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
             Assert.Equal(typeof(TestMessage2), addedConsumer.MessageType);
-            Assert.Equal(typeof(TestMessage2).FullName, addedConsumer.Queue);
+            Assert.Equal(typeof(TestMessage2).Name, addedConsumer.Queue);
         }
 
         [Fact]
@@ -101,12 +101,12 @@ namespace NSimpleBus.Tests
             var addedConsumer = config.RegisteredConsumers[typeof(TestMessage)][0];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
             Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
-            Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
+            Assert.Equal(typeof(TestMessage).Name, addedConsumer.Queue);
 
             addedConsumer = config.RegisteredConsumers[typeof(TestMessage2)][0];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
             Assert.Equal(typeof(TestMessage2), addedConsumer.MessageType);
-            Assert.Equal(typeof(TestMessage2).FullName, addedConsumer.Queue);
+            Assert.Equal(typeof(TestMessage2).Name, addedConsumer.Queue);
         }
 
         [Fact]
@@ -141,7 +141,7 @@ namespace NSimpleBus.Tests
             var addedConsumer = config.RegisteredConsumers[typeof(TestMessage)][0];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredConsumer), addedConsumer);
             Assert.Equal(typeof(TestMessage), addedConsumer.MessageType);
-            Assert.Equal(typeof(TestMessage).FullName, addedConsumer.Queue);
+            Assert.Equal(typeof(TestMessage).Name, addedConsumer.Queue);
         }
 
         [Fact]
@@ -168,8 +168,7 @@ namespace NSimpleBus.Tests
                 var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)][0];
                 Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
                 Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
-                Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
-                Assert.Contains(typeof(TestMessage).FullName, addedSubscriber.Queue);
+                Assert.Equal(typeof(TestMessage).Name, addedSubscriber.Queue);
                 Assert.True(addedSubscriber.AutoDeleteQueue);
 
                 addedSubscriber.Invoke(message);
@@ -217,14 +216,12 @@ namespace NSimpleBus.Tests
             var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)][0];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
             Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
-            Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
-            Assert.Contains(typeof(TestMessage).FullName, addedSubscriber.Queue);
+            Assert.Equal(typeof(TestMessage).Name, addedSubscriber.Queue);
 
             addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)][1];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
             Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
-            Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
-            Assert.Contains(typeof(TestMessage).FullName, addedSubscriber.Queue);
+            Assert.Equal(typeof(TestMessage).Name, addedSubscriber.Queue);
         }
 
         [Fact]
@@ -258,8 +255,7 @@ namespace NSimpleBus.Tests
             var addedSubscriber = config.RegisteredConsumers[typeof(TestMessage)][0];
             Assert.IsType(typeof(BrokerConfiguration.RegisteredSubscriber), addedSubscriber);
             Assert.Equal(typeof(TestMessage), addedSubscriber.MessageType);
-            Assert.NotEqual(typeof(TestMessage).FullName, addedSubscriber.Queue);
-            Assert.Contains(typeof(TestMessage).FullName, addedSubscriber.Queue);
+            Assert.Equal(typeof(TestMessage).Name, addedSubscriber.Queue);
         }
 
         [Fact]

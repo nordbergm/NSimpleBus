@@ -39,7 +39,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 SetupResult.For(consumer.MessageType).Return(typeof(TestMessage));
                 SetupResult.For(consumer.ConsumerType).Return(typeof(TestConsumer));
 
-                Expect.Call(() => rabbitModel.ExchangeDeclare(string.Concat("ex.", typeof(TestMessage).ToRoutingKey()), "fanout", true, false, null));
+                Expect.Call(() => rabbitModel.ExchangeDeclare(string.Concat("ex.", typeof(TestMessage).Name), "fanout", true, false, null));
             }
 
             using (mockRepository.Playback())
@@ -131,7 +131,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(config.AutoConfigure).Return(AutoConfigureMode.PublishSubscribe);
 
-                Expect.Call(rabbitModel.QueueDeclare("PublishSubscribe." + typeof(TestConsumer).FullName + ".q", true, true, true, null)).Return(new QueueDeclareOk("PublishSubscribe.q", 0, 0));
+                Expect.Call(rabbitModel.QueueDeclare("PublishSubscribe." + typeof(TestConsumer).Name + ".q", true, false, true, null)).Return(new QueueDeclareOk("PublishSubscribe.q", 0, 0));
             }
 
             using (mockRepository.Playback())
@@ -162,7 +162,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(config.AutoConfigure).Return(AutoConfigureMode.CompetingConsumer);
 
-                Expect.Call(rabbitModel.QueueDeclare("CompetingConsumer." + typeof(TestConsumer).FullName + ".q", true, false, false, null)).Return(new QueueDeclareOk("CompetingConsumer.q", 0, 0));
+                Expect.Call(rabbitModel.QueueDeclare("CompetingConsumer." + typeof(TestConsumer).Name + ".q", true, false, false, null)).Return(new QueueDeclareOk("CompetingConsumer.q", 0, 0));
             }
 
             using (mockRepository.Playback())

@@ -44,9 +44,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SimpleMessageSubscriberTwo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SimpleMessageSubscriber.cs" />
+    <Compile Include="SimpleMessageSubscriberOne.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\NSimpleBus.Transports.RabbitMQ\NSimpleBus.Transports.RabbitMQ.csproj">

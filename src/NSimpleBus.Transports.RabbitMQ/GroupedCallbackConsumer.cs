@@ -145,7 +145,7 @@ namespace NSimpleBus.Transports.RabbitMQ
                         this._requeueQueue.Enqueue(
                             new KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>(sender, args));
 
-                        lock (this._consumerLockObject)
+                        lock (this._requeueLockObject)
                         {
                             Monitor.Pulse(this._requeueLockObject);
                         }
@@ -166,7 +166,7 @@ namespace NSimpleBus.Transports.RabbitMQ
                     this._requeueQueue.Enqueue(
                         new KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>(sender, args));
 
-                    lock (this._consumerLockObject)
+                    lock (this._requeueLockObject)
                     {
                         Monitor.Pulse(this._requeueLockObject);
                     }

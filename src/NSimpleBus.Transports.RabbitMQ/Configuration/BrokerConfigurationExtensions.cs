@@ -1,6 +1,5 @@
 ﻿using System;
 using NSimpleBus.Transports.RabbitMQ;
-using NSimpleBus.Transports.RabbitMQ.Serialization;
 using RabbitMQ.Client;
 
 namespace NSimpleBus.Configuration
@@ -9,8 +8,16 @@ namespace NSimpleBus.Configuration
     {
         public static void UseRabbitMq(this IBrokerConfiguration config)
         {
-            config.Port = AmqpTcpEndpoint.UseDefaultPort;
-            config.VirtualHost = "/";
+            if (config.Port <= 0)
+            {
+                config.Port = AmqpTcpEndpoint.UseDefaultPort;
+            }
+
+            if (string.IsNullOrEmpty(config.VirtualHost))
+            {
+                config.VirtualHost = "/";
+            }
+
             config.ConnectionFactory = new BrokerConnectionFactory(config);
             config.JsonSerializer();
         }

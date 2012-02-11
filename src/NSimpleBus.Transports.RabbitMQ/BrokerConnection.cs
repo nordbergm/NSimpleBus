@@ -65,6 +65,9 @@ namespace NSimpleBus.Transports.RabbitMQ
                 byte[] body;
                 string routingKey;
 
+                // Fire MessageSending event
+                _configuration.PipelineEvents.OnMessageSending(new PipelineEventArgs(message));
+
                 this._serializer.SerializeMessage(message, this._model, out headers, out body, out routingKey);
 
                 this._model.BasicPublish(

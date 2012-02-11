@@ -17,9 +17,12 @@ namespace NSimpleBus.Configuration
         {
             this.RegisteredConsumers = new Dictionary<Type, IList<IRegisteredConsumer>>();
             this.AutoConfigure = AutoConfigureMode.None;
-            this.CreatePrincipal = n => new GenericPrincipal(new GenericIdentity(n), new string[0]);
+            this.PipelineEvents = new PipelineEvents();
             this.HeartbeatInterval = TimeSpan.FromSeconds(5);
             this.ReQueueDelay = TimeSpan.FromSeconds(5);
+
+            this.PipelineEvents.ResolvePrincipal +=
+                (sender, args) => args.Principal = new GenericPrincipal(new GenericIdentity(args.MessageEnvelope.UserName), new string[0]);
         }
 
         #region IBrokerConfiguration Members
@@ -28,7 +31,7 @@ namespace NSimpleBus.Configuration
         public string Password { get; set; }
         public string HostName { get; set; }
         public int Port { get; set; }
-        public CreatePrincipalDelegate CreatePrincipal { get; set; }
+        public IPipelineEvents PipelineEvents { get; set; }
         public ResolveQueueNameDelegate ResolveQueueName { get; set; }
         public ISerializer Serializer { get; set; }
         public string Exchange { get; set; }

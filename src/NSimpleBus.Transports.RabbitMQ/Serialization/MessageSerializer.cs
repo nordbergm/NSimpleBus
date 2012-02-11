@@ -45,7 +45,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Serialization
             Stream stream = Serializer.Serialize(message);
 
             var messageBuilder = new MapMessageBuilder(model);
-            messageBuilder.Headers[MessageTypeHeader] = message.MessageType;
+            messageBuilder.Headers[MessageTypeHeader] = message.GetType().GetGenericArguments()[0].AssemblyQualifiedName;
             headers = (IBasicProperties)messageBuilder.GetContentHeader();
 
             routingKey = message.Message.GetType().ToRoutingKey();

@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Collections.Specialized;
+using System.Threading;
 
 namespace NSimpleBus.Transports
 {
@@ -7,7 +8,7 @@ namespace NSimpleBus.Transports
         public MessageEnvelope(T message)
         {
             this.Message = message;
-            this.MessageType = message.GetType().AssemblyQualifiedName;
+            this.Headers = new NameValueCollection();
 
             if (Thread.CurrentPrincipal != null && Thread.CurrentPrincipal.Identity.IsAuthenticated)
             {
@@ -19,7 +20,7 @@ namespace NSimpleBus.Transports
 
         public string UserName { get; set; }
         public T Message { get; set; }
-        public string MessageType { get; set; }
+        public NameValueCollection Headers { get; set; }
 
         #endregion
     }

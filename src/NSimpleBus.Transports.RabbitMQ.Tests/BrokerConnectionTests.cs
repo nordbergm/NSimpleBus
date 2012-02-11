@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -214,11 +215,19 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var messageSerializer = mockRepository.DynamicMock<IMessageSerializer>();
             var callbackConsumer = mockRepository.DynamicMock<ICallbackConsumer>();
             var basicProperties = mockRepository.Stub<IBasicProperties>();
+            var pipelineEvents = new PipelineEvents();
+            pipelineEvents.MessageSending += (sender, args) => args.MessageEnvelope.Headers.Add("a", "b");
 
             using (mockRepository.Record())
             {
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(rabbitConn.CreateModel()).Return(rabbitModel);
+                SetupResult.For(config.PipelineEvents).Return(pipelineEvents);
+                SetupResult.For(envelope.Headers).Return(new NameValueCollection());
+
+                var stream = new JsonSerializer().Serialize(envelope);
+                var data = new byte[stream.Length];
+                stream.Read(data, 0, data.Length);
 
                 IBasicProperties headers;
                 byte[] body;
@@ -226,11 +235,12 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 Expect.Call(() => messageSerializer.SerializeMessage(envelope, rabbitModel, out headers, out body, out routingKey))
                     .WhenCalled(mi =>
                                     {
+                                        Assert.Equal("b", ((IMessageEnvelope<object>)mi.Arguments[0]).Headers["a"]);
                                         mi.Arguments[2] = basicProperties;
-                                        mi.Arguments[3] = Encoding.Default.GetBytes("serialized");
+                                        mi.Arguments[3] = data;
                                         mi.Arguments[4] = "routing";
                                     });
-                Expect.Call(() => rabbitModel.BasicPublish("ex", "routing", basicProperties, Encoding.Default.GetBytes("serialized")));
+                Expect.Call(() => rabbitModel.BasicPublish("ex", "routing", basicProperties, data));
             }
 
             using (mockRepository.Playback())

@@ -15,7 +15,7 @@ namespace NSimpleBus.Configuration
         string Exchange { get; set; }
         string VirtualHost { get; set; }
         AutoConfigureMode AutoConfigure { get; set; }
-        CreatePrincipalDelegate CreatePrincipal { get; set; }
+        IPipelineEvents PipelineEvents { get; }
         ResolveQueueNameDelegate ResolveQueueName { get; set; }
         ISerializer Serializer { get; set; }
         IDictionary<Type, IList<IRegisteredConsumer>> RegisteredConsumers { get; set; }
@@ -27,6 +27,8 @@ namespace NSimpleBus.Configuration
         void RegisterConsumers(Assembly assembly, string nameSpace = null, Func<Type, IConsumer> resolver = null);
         void RegisterConsumers(Assembly[] assemblies, string[] nameSpaces = null, Func<Type, IConsumer> resolver = null);
         void RegisterSubscribers(Assembly assembly, string nameSpace = null, Func<Type, ISubscriber> resolver = null);
-        void RegisterSubscribers(Assembly[] assemblies, string[] nameSpaces = null, Func<Type, ISubscriber> resolver = null);
+
+        void RegisterSubscribers(Assembly[] assemblies, string[] nameSpaces = null,
+                                 Func<Type, ISubscriber> resolver = null);
     }
 }

@@ -115,6 +115,9 @@ namespace NSimpleBus.Transports.RabbitMQ
                 var registeredConsumer = this.QueueConsumers[args.Queue].RegisteredConsumer;
                 var envelope = Serializer.DeserializeMessage(args);
 
+                // Fire MessageReceived event
+                Config.PipelineEvents.OnMessageReceived(new PipelineEventArgs(envelope));
+
                 try
                 {
                     var acceptance = registeredConsumer.Accept(envelope.Message);
@@ -123,7 +126,15 @@ namespace NSimpleBus.Transports.RabbitMQ
                     {
                         if (!string.IsNullOrEmpty(envelope.UserName))
                         {
-                            Thread.CurrentPrincipal = Config.CreatePrincipal(envelope.UserName);
+                            var resolvePrincipalArgs = new ResolvePrincipalEventArgs(envelope);
+
+                            // Fire ResolvePrincipal event
+                            Config.PipelineEvents.OnResolvePrincipal(resolvePrincipalArgs);
+
+                            if (resolvePrincipalArgs.Principal != null)
+                            {
+                                Thread.CurrentPrincipal = resolvePrincipalArgs.Principal;
+                            }
                         }
 
                         registeredConsumer.Invoke(envelope.Message);
@@ -132,6 +143,9 @@ namespace NSimpleBus.Transports.RabbitMQ
 
                         Log.InfoFormat("Accepted message {0}.",
                                        registeredConsumer.MessageType.FullName);
+
+                        // Fire MessageConsumed event
+                        Config.PipelineEvents.OnMessageConsumed(new PipelineEventArgs(envelope));
                     }
                     else if (acceptance == Acceptance.Requeue)
                     {

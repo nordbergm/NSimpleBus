@@ -54,8 +54,11 @@
     <Compile Include="Configuration\BrokerConfiguration.cs" />
     <Compile Include="Configuration\BrokerConfigurationExtensions.cs" />
     <Compile Include="Configuration\IBrokerConfiguration.cs" />
+    <Compile Include="Configuration\IPipelineEvents.cs" />
     <Compile Include="Configuration\IRegisteredConsumer.cs" />
-    <Compile Include="Configuration\CreatePrincipalDelegate.cs" />
+    <Compile Include="Configuration\PipelineEventArgs.cs" />
+    <Compile Include="Configuration\PipelineEvents.cs" />
+    <Compile Include="Configuration\ResolvePrincipalEventArgs.cs" />
     <Compile Include="Configuration\ResolveQueueNameDelegate.cs" />
     <Compile Include="IBus.cs" />
     <Compile Include="ISubscriber.cs" />

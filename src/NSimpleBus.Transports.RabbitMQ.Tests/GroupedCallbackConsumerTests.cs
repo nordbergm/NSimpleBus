@@ -137,6 +137,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 SetupResult.For(registeredConsumer.Queue).Return("q");
                 SetupResult.For(messageSerializer.DeserializeMessage(null)).IgnoreArguments().Return(
                     mockRepository.Stub<IMessageEnvelope<TestMessage>>());
+                SetupResult.For(config.PipelineEvents).Return(new PipelineEvents());
                 Expect.Call(() => rabbitModel.BasicAck(1, false));
             }
 
@@ -214,6 +215,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 SetupResult.For(registeredConsumer.Queue).Return("q");
                 SetupResult.For(envelope.Message).Return(message);
                 SetupResult.For(messageSerializer.DeserializeMessage(null)).IgnoreArguments().Return(envelope);
+                SetupResult.For(config.PipelineEvents).Return(new PipelineEvents());
 
                 Expect.Call(() => registeredConsumer.Invoke(message));
             }
@@ -240,6 +242,9 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             var envelope = mockRepository.DynamicMock<IMessageEnvelope<TestMessage>>();
             var message = new TestMessage();
             var config = mockRepository.DynamicMock<IBrokerConfiguration>();
+            var pipelineEvents = new PipelineEvents();
+            pipelineEvents.ResolvePrincipal +=
+                (sender, args) => args.Principal = new GenericPrincipal(new GenericIdentity(args.MessageEnvelope.UserName + "set"), new string[0]);
 
             using (mockRepository.Record())
             {
@@ -248,8 +253,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 SetupResult.For(registeredConsumer.Queue).Return("q");
                 SetupResult.For(envelope.Message).Return(message);
                 SetupResult.For(messageSerializer.DeserializeMessage(null)).IgnoreArguments().Return(envelope);
-                SetupResult.For(config.CreatePrincipal).Return(
-                    n => new GenericPrincipal(new GenericIdentity(n + "set"), new string[0]));
+                SetupResult.For(config.PipelineEvents).Return(pipelineEvents);
 
                 Expect.Call(() => registeredConsumer.Invoke(message)).WhenCalled(mi => Assert.Equal("user1set", Thread.CurrentPrincipal.Identity.Name));
             }

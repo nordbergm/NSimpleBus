@@ -1,4 +1,4 @@
-using System.Collections.Specialized;
+using System.Collections.Generic;
 
 namespace NSimpleBus.Transports
 {
@@ -6,6 +6,6 @@ namespace NSimpleBus.Transports
     {
         T Message { get; }
         string UserName { get; }
-        NameValueCollection Headers { get; }
+        IDictionary<string, string> Headers { get; }
     }
 }

@@ -223,7 +223,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 SetupResult.For(config.Exchange).Return("ex");
                 SetupResult.For(rabbitConn.CreateModel()).Return(rabbitModel);
                 SetupResult.For(config.PipelineEvents).Return(pipelineEvents);
-                SetupResult.For(envelope.Headers).Return(new NameValueCollection());
+                SetupResult.For(envelope.Headers).Return(new Dictionary<string, string>());
 
                 var stream = new JsonSerializer().Serialize(envelope);
                 var data = new byte[stream.Length];

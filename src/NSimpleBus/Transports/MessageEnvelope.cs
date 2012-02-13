@@ -1,4 +1,4 @@
-﻿using System.Collections.Specialized;
+﻿using System.Collections.Generic;
 using System.Threading;
 
 namespace NSimpleBus.Transports
@@ -8,7 +8,7 @@ namespace NSimpleBus.Transports
         public MessageEnvelope(T message)
         {
             this.Message = message;
-            this.Headers = new NameValueCollection();
+            this.Headers = new Dictionary<string, string>();
 
             if (Thread.CurrentPrincipal != null && Thread.CurrentPrincipal.Identity.IsAuthenticated)
             {
@@ -20,7 +20,7 @@ namespace NSimpleBus.Transports
 
         public string UserName { get; set; }
         public T Message { get; set; }
-        public NameValueCollection Headers { get; set; }
+        public IDictionary<string, string> Headers { get; set; }
 
         #endregion
     }

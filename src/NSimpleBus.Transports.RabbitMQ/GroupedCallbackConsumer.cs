@@ -120,23 +120,23 @@ namespace NSimpleBus.Transports.RabbitMQ
 
                 try
                 {
+                    if (!string.IsNullOrEmpty(envelope.UserName))
+                    {
+                        var resolvePrincipalArgs = new ResolvePrincipalEventArgs(envelope);
+
+                        // Fire ResolvePrincipal event
+                        Config.PipelineEvents.OnResolvePrincipal(resolvePrincipalArgs);
+
+                        if (resolvePrincipalArgs.Principal != null)
+                        {
+                            Thread.CurrentPrincipal = resolvePrincipalArgs.Principal;
+                        }
+                    }
+
                     var acceptance = registeredConsumer.Accept(envelope.Message);
 
                     if (acceptance == Acceptance.Accept)
                     {
-                        if (!string.IsNullOrEmpty(envelope.UserName))
-                        {
-                            var resolvePrincipalArgs = new ResolvePrincipalEventArgs(envelope);
-
-                            // Fire ResolvePrincipal event
-                            Config.PipelineEvents.OnResolvePrincipal(resolvePrincipalArgs);
-
-                            if (resolvePrincipalArgs.Principal != null)
-                            {
-                                Thread.CurrentPrincipal = resolvePrincipalArgs.Principal;
-                            }
-                        }
-
                         registeredConsumer.Invoke(envelope.Message);
 
                         sender.Model.BasicAck(args.DeliveryTag, false);

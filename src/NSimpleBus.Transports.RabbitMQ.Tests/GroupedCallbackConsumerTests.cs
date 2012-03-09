@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using NSimpleBus.Configuration;
+using NSimpleBus.Tests.Namespace1;
 using NSimpleBus.Transports.RabbitMQ.Serialization;
 using RabbitMQ.Client;
 using Rhino.Mocks;
@@ -135,6 +136,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             {
                 SetupResult.For(registeredConsumer.MessageType).Return(typeof (TestMessage));
                 SetupResult.For(registeredConsumer.Queue).Return("q");
+                SetupResult.For(registeredConsumer.ConsumerType).Return(typeof (TestConsumer));
                 SetupResult.For(messageSerializer.DeserializeMessage(null)).IgnoreArguments().Return(
                     mockRepository.Stub<IMessageEnvelope<TestMessage>>());
                 SetupResult.For(config.PipelineEvents).Return(new PipelineEvents());
@@ -213,6 +215,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
             {
                 SetupResult.For(registeredConsumer.MessageType).Return(typeof(TestMessage));
                 SetupResult.For(registeredConsumer.Queue).Return("q");
+                SetupResult.For(registeredConsumer.ConsumerType).Return(typeof(TestConsumer));
                 SetupResult.For(envelope.Message).Return(message);
                 SetupResult.For(messageSerializer.DeserializeMessage(null)).IgnoreArguments().Return(envelope);
                 SetupResult.For(config.PipelineEvents).Return(new PipelineEvents());
@@ -251,6 +254,7 @@ namespace NSimpleBus.Transports.RabbitMQ.Tests
                 SetupResult.For(envelope.UserName).Return("user1");
                 SetupResult.For(registeredConsumer.MessageType).Return(typeof(TestMessage));
                 SetupResult.For(registeredConsumer.Queue).Return("q");
+                SetupResult.For(registeredConsumer.ConsumerType).Return(typeof(TestConsumer));
                 SetupResult.For(envelope.Message).Return(message);
                 SetupResult.For(messageSerializer.DeserializeMessage(null)).IgnoreArguments().Return(envelope);
                 SetupResult.For(config.PipelineEvents).Return(pipelineEvents);

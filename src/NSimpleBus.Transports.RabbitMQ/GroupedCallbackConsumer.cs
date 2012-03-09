@@ -137,25 +137,28 @@ namespace NSimpleBus.Transports.RabbitMQ
 
                     if (acceptance == Acceptance.Accept)
                     {
+                        Log.DebugFormat("{0} accepted message {1}.",
+                                       registeredConsumer.ConsumerType.Name, registeredConsumer.MessageType.Name);
+
                         registeredConsumer.Invoke(envelope.Message);
 
                         sender.Model.BasicAck(args.DeliveryTag, false);
-
-                        Log.InfoFormat("Accepted message {0}.",
-                                       registeredConsumer.MessageType.FullName);
 
                         // Fire MessageConsumed event
                         Config.PipelineEvents.OnMessageConsumed(new PipelineEventArgs(envelope));
                     }
                     else if (acceptance == Acceptance.Requeue)
                     {
-                        sender.Model.BasicNack(args.DeliveryTag, false, true);
+                        Log.DebugFormat("{0} is re-queueing message {1}.",
+                                       registeredConsumer.ConsumerType.Name, registeredConsumer.MessageType.Name);
 
-                        Log.InfoFormat("Re-queued message {0}.",
-                                       registeredConsumer.MessageType.FullName);
+                        sender.Model.BasicNack(args.DeliveryTag, false, true);
                     }
                     else if (acceptance == Acceptance.DelayedRequeue)
                     {
+                        Log.DebugFormat("{0} is re-queueing message {1} with delay.",
+                                       registeredConsumer.ConsumerType.Name, registeredConsumer.MessageType.Name);
+
                         this._requeueQueue.Enqueue(
                             new KeyValuePair<QueueActivityConsumer, QueueActivityConsumer.DeliverEventArgs>(sender, args));
 
@@ -163,16 +166,13 @@ namespace NSimpleBus.Transports.RabbitMQ
                         {
                             Monitor.Pulse(this._requeueLockObject);
                         }
-
-                        Log.InfoFormat("Re-queued message {0} with delay.",
-                                       registeredConsumer.MessageType.FullName);
                     }
                     else
                     {
-                        sender.Model.BasicNack(args.DeliveryTag, false, false);
+                        Log.WarnFormat("{0} rejected message {1}.",
+                                       registeredConsumer.ConsumerType.Name, registeredConsumer.MessageType.Name);
 
-                        Log.WarnFormat("Rejected message {0}.",
-                                       registeredConsumer.MessageType.FullName);
+                        sender.Model.BasicNack(args.DeliveryTag, false, false);
                     }
                 }
                 catch (Exception ex)

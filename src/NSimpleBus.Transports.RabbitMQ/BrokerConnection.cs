@@ -69,12 +69,15 @@ namespace NSimpleBus.Transports.RabbitMQ
                 _configuration.PipelineEvents.OnMessageSending(new PipelineEventArgs(message));
 
                 this._serializer.SerializeMessage(message, this._model, out headers, out body, out routingKey);
-
+                
+                var exchange = _configuration.InternalExchange(typeof (T));
                 this._model.BasicPublish(
-                    _configuration.InternalExchange(typeof(T)),
+                    exchange,
                     routingKey,
                     headers,
                     body);
+
+                Log.DebugFormat("{0} sent to {1}.", typeof(T).Name, exchange);
             }
         }
 
